@@ -81,7 +81,7 @@ define(
                     var currElem = this.$el;
                     var SelectionModel = Backbone.Model.extend({
                         defaults : {
-                            select: ['application'],
+                            select: ['application','tier'],
                             where: []
                         }
                     });
@@ -177,6 +177,20 @@ define(
                         });
                         var config = {
                             levels : levels,
+                            parentSeparation: 1.0,
+                            parentSeparationShrinkFactor: 0.05,
+                            parentSeparationDepthThreshold: 4,
+                            drawLinks: false,
+                            drawRibbons: true,
+                            arcWidth: 15,
+                            arcLabelLetterWidth: 5,
+                            showArcLabels: true,
+                            //labelFlow: 'along-arc',
+                            labelFlow: 'perpendicular',
+                            //arcLabelXOffset: 2,
+                            arcLabelXOffset: 0,
+                            //arcLabelYOffset: 25,
+                            arcLabelYOffset: 20,
                             hierarchyConfig: {
                                 parse: function (d) {
                                     //Get selected tags
