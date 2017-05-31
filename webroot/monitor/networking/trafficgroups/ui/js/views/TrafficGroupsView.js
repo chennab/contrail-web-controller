@@ -195,7 +195,8 @@ define(
                                             $.each(arcTitle, function(i) {
                                                 arcTitle[i] = formatAppLabel(data.namePath[i],data.arcType);
                                             });
-                                            var content = { title: arcTitle.join('-'), items: [] };
+                                            var content = { title: ((arcTitle.length > 1 && arcTitle[1])
+                                                ? arcTitle.join('-') : arcTitle[0]), items: [] };
 
                                             var children = data.children;
                                             if(_.result(data,'children.0.children') != null) {
@@ -227,40 +228,52 @@ define(
                                                 }))
                                             });
                                         } else {
-                                            d = data;
-                                            var srcApp = d.link[0].data.id,
-                                                dstApp = d.link[1].data.id.slice(0);
+                                            var d = data,
+                                                links = d.link,
+                                                srcApp = d.link[0].data.id,
+                                                dstNames = d.link[1].data.currentNode.names.slice(0),
+                                                dstApp = ((dstNames.length > 1 && dstNames[1])
+                                                         ? dstNames.join('-') : dstNames[0]);
+                                            if((srcApp == dstApp) || (d.link[1].data.arcType)) {
+                                                links = d.link.slice(0,1);
+                                            }
                                             dstApp = formatAppLabel(dstApp,d.link[1].data.arcType);
                                             var content = { title: (
                                                     srcApp
                                                     + '<img src="/img/double_arrow_white.svg"/>'
                                                     + dstApp), items: [] };
-                                            _.each(d.link.slice(0,1), function(link) {
+                                            _.each(links, function(link) {
                                                 var data = {
-                                                    trafficIn: formatBytes(_.sumBy(_.filter(link.data.dataChildren,
-                                                        function(val,idx) {
-                                                            return val.app == link.data.id;
-                                                        }),
-                                                    function(bytes) {
-                                                        return bytes['SUM(eps.traffic.in_bytes)'];
-                                                    })),
-                                                    trafficOut: formatBytes(_.sumBy(_.filter(link.data.dataChildren,
-                                                        function(val,idx) {
-                                                            return val.app == link.data.id;
-                                                        }),
-                                                    function(bytes) {
-                                                        return bytes['SUM(eps.traffic.in_bytes)'];
-                                                    }))
+                                                    trafficIn: formatBytes(_.sumBy(link.data.dataChildren,
+                                                        function(bytes) {
+                                                            var namePath = link.data.currentNode ? link.data.currentNode.names : '';
+                                                            if((namePath.length == 1 && bytes.app ==  namePath[0])
+                                                                || namePath.length == 2 && bytes.app ==  namePath[0] && bytes.tier ==  namePath[1])
+                                                                return _.result(bytes,'SUM(eps.traffic.in_bytes)',0);
+                                                            else
+                                                                return 0;
+
+                                                        })),
+                                                    trafficOut: formatBytes(_.sumBy(link.data.dataChildren,
+                                                        function(bytes) {
+                                                            var namePath = link.data.currentNode ? link.data.currentNode.names : '';
+                                                            if((namePath.length == 1 && bytes.app ==  namePath[0])
+                                                                || namePath.length == 2 && bytes.app ==  namePath[0] && bytes.tier ==  namePath[1])
+                                                                return _.result(bytes,'SUM(eps.traffic.out_bytes)',0);
+                                                            else
+                                                                return 0
+                                                        }))
                                                 };
                                                 content.items.push({
+                                                    label: formatAppLabel(link.data.id,link.data.arcType)
+                                                },{
                                                     label: 'Traffic In',
                                                     value: data.trafficIn
                                                 }, {
                                                     label: 'Traffic Out',
                                                     value: data.trafficOut
                                                 });
-                                             });
-
+                                            });
                                         }
                                         return content;
                                     }
@@ -293,16 +306,6 @@ define(
                                 url: monitorInfraConstants.monitorInfraUrls['QUERY'],
                                 type: 'POST',
                                 data: JSON.stringify(postData)
-                            },
-                            successCallback: function(data){
-                                if(data[0].nodata) {
-                                    self.updateChart({
-                                        'expandLevels': 'disable',
-                                        'showArcInfo': 'disable',
-                                        'showLinkInfo': false,
-                                        'showLinkTooltip': false
-                                    });
-                                }
                             },
                             dataParser : function (response) {
                                 if(false || response['data'].length == 0) {
@@ -339,6 +342,17 @@ define(
                                         tagMap[currTag.tag_id] = currTag.name;
                                     });
                                     var data = contrailListModel.getItems();
+                                    contrailListModel.onAllRequestsComplete.subscribe(function() {
+                                        var data = contrailListModel.getItems();
+                                        if(data && data.length == 1 && data[0].nodata) {
+                                            self.updateChart({
+                                                'expandLevels': 'disable',
+                                                'showArcInfo': 'disable',
+                                                'showLinkInfo': false,
+                                                'showLinkTooltip': false
+                                            });
+                                        }
+                                    });
                                     var chartData = [];
                                     $.each(data, function (idx, value) {
                                         
