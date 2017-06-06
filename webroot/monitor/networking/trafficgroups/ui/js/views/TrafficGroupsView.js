@@ -243,17 +243,25 @@ define(
                                                 dstHierarchy = [d['eps.traffic.remote_app_id'], d['eps.traffic.remote_tier_id']];
                                             }
                                             var remoteVN = d['eps.traffic.remote_vn'];
-                                            if(remoteVN && remoteVN.indexOf(':') > 0){
-                                                var remoteProject = remoteVN.split(':')[1];
+                                            if(remoteVN && remoteVN.indexOf(':') > 0) {
+                                                var remoteProject = remoteVN.split(':')[1],
+                                                    otherDeployment = '';
                                                 if(currentProject != remoteProject) {
                                                     externalProject = 'externalProject';
+                                                }
+                                                if(d['app'] == d['eps.traffic.remote_app_id']
+                                                    && d['deployment'] != d['eps.traffic.remote_deployment_id']) {
+                                                    otherDeployment = d['eps.traffic.remote_deployment_id'];
+                                                }
+                                                if(otherDeployment) {
+                                                    externalProject += ' '+otherDeployment;
                                                 }
                                             } else {
                                                 externalProject = 'external';
                                             }
                                             if(externalProject) {
                                                 $.each(dstHierarchy, function(i) {
-                                                    if(externalProject == 'external'){
+                                                    if(externalProject == 'external') {
                                                         dstHierarchy[i] = 'External_external';
                                                     } else {
                                                         dstHierarchy[i] += '_'+externalProject;
@@ -409,8 +417,41 @@ define(
                                 }
                             }]
                         }
+                        $('#traffic-groups-radial-chart')
+                        .removeClass('showLinkInfo');
+                        $('#traffic-groups-link-info').html('');
                         viewInst.updateConfig(config);
-                        viewInst.render();
+                        var data = self.trafficData ? JSON.parse(JSON.stringify(self.trafficData))
+                                     : viewInst.model.getItems();
+                        data = self.formatEmptyBytes(data,(cfg.levels ? cfg.levels : 1));
+                        viewInst.render(data);
+                    },
+                    this.formatEmptyBytes = function(data, level) {
+                        // If sum of in-bytes and out-bytes of a link is 0, making in-bytes and out-bytes
+                        // of first record of link to 1 to plot the link
+                        self.level = level;
+                        var dataTrafficMap = _.groupBy(data, function(d) {
+                            if(self.level == 1) {
+                                return d.app + d['eps.traffic.remote_app_id'];
+                            } else {
+                                return d.app + d.tier + d['eps.traffic.remote_app_id'] + d['eps.traffic.remote_tier_id'];
+                            }
+                        });
+                        _.each(dataTrafficMap, function(link) {
+                            var linkSum = _.reduce(link, function(sum,value,key) {
+                                return sum+value['SUM(eps.traffic.in_bytes)']+value['SUM(eps.traffic.out_bytes)'];
+                            }, 0);
+                            if(linkSum == 0) {
+                                _.each(link, function(rec,idx) {
+                                    if(idx ==0) {
+                                        rec['SUM(eps.traffic.in_bytes)'] =
+                                        rec['SUM(eps.traffic.out_bytes)'] = 1;
+                                    }
+                                    rec.nodata = true;
+                                });
+                            }
+                        });
+                        return data;
                     }
                     var postData = {
                         "async": false,
@@ -464,8 +505,8 @@ define(
                                 },
                                 successCallback: function(response, contrailListModel) {
                                     TrafficGroupsView.tagMap = _.groupBy(_.map(_.result(response, '0.tags', []), 'tag'), 'tag_id');
-                                    var tagMap = {}; 
-                                    var tagRecords = _.result(response,'0.tags',[]);
+                                    var tagMap = {},
+                                        tagRecords = _.result(response,'0.tags',[]);
                                     tagRecords.forEach(function(val,idx) {
                                         var currTag = val['tag'];
                                         tagMap[currTag.tag_id] = currTag.name;
@@ -482,14 +523,13 @@ define(
                                     });
                                     var chartData = [];
                                     $.each(data, function (idx, value) {
-                                        
                                         $.each(['eps.traffic.remote_app_id', 'eps.traffic.remote_deployment_id',
                                             'eps.traffic.remote_prefix', 'eps.traffic.remote_site_id',
                                             'eps.traffic.remote_tier_id'], function (idx, val) {
-                                                if(value[val] == '0') 
-                                                    value[val] = ''; 
+                                                if(value[val] == '0')
+                                                    value[val] = '';
                                                 if(!_.isEmpty(tagMap[parseInt(value[val])])) {
-                                                    value[val] = tagMap[parseInt(value[val])]; 
+                                                    value[val] = tagMap[parseInt(value[val])];
                                                 }
                                         });
                                         function formatVN(vnName) {
@@ -512,7 +552,9 @@ define(
                                                 value[tagName] = value[tagName].split(':').pop();
                                         });
                                     });
+                                    self.trafficData = JSON.parse(JSON.stringify(data));
                                     // cowu.populateTrafficGroupsData(data);
+                                    data = self.formatEmptyBytes(data,1);
                                     return data;
                                 }
                             }]
