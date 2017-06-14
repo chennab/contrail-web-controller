@@ -43,6 +43,10 @@ define([
 
         renderFlow: function (viewConfig) {
             this.renderView4Config(this.$el, null, getFlowConfig(viewConfig));
+        },
+
+        renderTrafficGroups: function (viewConfig) {
+            this.renderView4Config(this.$el, null, getTrafficGroupsConfig(viewConfig));
         }
     });
 
@@ -365,6 +369,36 @@ define([
                         ]
                     }
                 ]
+            }
+        }
+    };
+
+    function getTrafficGroupsConfig(viewConfig) {
+        var hashParams = viewConfig.hashParams,
+            customProjectDropdownOptions = {
+                config: true,
+                childView: {
+                    init: getTrafficGroupsViewConfig(viewConfig)
+                }
+            },
+            customDomainDropdownOptions = {
+                childView: {
+                    init: ctwvc.getProjectBreadcrumbDropdownViewConfig(hashParams, customProjectDropdownOptions)
+                }
+            };
+        return ctwvc.getDomainBreadcrumbDropdownViewConfig(hashParams, customDomainDropdownOptions);
+    };
+
+    function getTrafficGroupsViewConfig(viewConfig) {
+        return function (projectSelectedValueData) {
+            return {
+                elementId: cowu.formatElementId([ctwl.NETWORK_TRAFFIC_VIEW_ID]),
+                view: "TrafficGroupsView",
+                viewPathPrefix:
+                    "monitor/networking/ui/js/views/",
+                app: cowc.APP_CONTRAIL_CONTROLLER,
+                viewConfig: $.extend(true, {},
+                     viewConfig, {projectSelectedValueData: projectSelectedValueData})
             }
         }
     };

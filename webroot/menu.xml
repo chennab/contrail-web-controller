@@ -362,6 +362,22 @@ and need to add the iconClass tag wherever we need to show some icons
                             <searchStrings>Monitor interfaces</searchStrings>
                         </item>
                         <item>
+                            <label>Traffic Groups</label>
+                            <hash>mon_networking_trafficgroups</hash>
+                            <access>
+                                <roles>
+                                    <role>cloudAdmin</role>
+                                    <role>member</role>
+                                </roles>
+                                <accessFn>hideInGlobalController</accessFn>
+                            </access>
+                            <loader>
+                                <class>mnPageLoader</class>
+                                <function>renderTrafficGroups</function>
+                            </loader>
+                            <searchStrings>Monitor Traffic Groups</searchStrings>
+                        </item>
+                        <!--<item>
                             <hash>mon_networking_trafficgroups</hash>
                             <label>Traffic Groups</label>
                             <resources>
@@ -374,7 +390,7 @@ and need to add the iconClass tag wherever we need to show some icons
                             </resources>
                             <searchStrings>Monitor Traffic Groups</searchStrings>
                         </item>
-                        <!--<item>
+                        <item>
                             <hash>mon_networking_trafficgroups</hash>
                             <label>Traffic Groups</label>
                             <loader>

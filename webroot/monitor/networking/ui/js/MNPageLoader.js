@@ -75,6 +75,9 @@ define([
                         this.mnView.renderFlow({hashParams: hashParams});
                     }
                     break;
+                case 'renderTrafficGroups':
+                    this.mnView.renderTrafficGroups({hashParams: hashParams});
+                    break;
             }
         },
 
