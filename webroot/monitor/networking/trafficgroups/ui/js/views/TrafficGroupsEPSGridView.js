@@ -305,7 +305,7 @@ define([
        return this.epsDefaultValueFormatter(this.getEndpointTags(dc));
     }
     this.remoteTagsFormatter = function(v, dc) {
-       return this.epsDefaultValueFormatter(this.getEndpointTags(dc), 'remote');
+       return this.epsDefaultValueFormatter(this.getEndpointTags(dc, 'remote'));
     }
     this.appFormatter = function(v, dc) {
        return this.epsDefaultValueFormatter(dc['app']);
