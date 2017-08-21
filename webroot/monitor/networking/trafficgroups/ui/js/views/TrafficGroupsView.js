@@ -18,6 +18,8 @@ define(
                     'deployment': [],
                     'site': []
                 },
+                showOtherProjectTraffic: false,
+                combineEmptyTags: false,
                 filterdData: null,
                 resetTrafficStats: function(e) {
                     e.preventDefault();
@@ -325,7 +327,7 @@ define(
                         if(tagObj.showIcononEmpty) {
                             label += tagObj.text.toLowerCase();
                         }
-                        if(tagObj.showVNonEmpty) {
+                        if(tagObj.showVNonEmpty && !this.combineEmptyTags) {
                             label += (label ? ' ' : '') +
                                 this.formatVN(vn ? vn : d['vn']);
                         }
@@ -412,7 +414,8 @@ define(
 
                                         if(remoteVN && remoteVN.indexOf(':') > 0) {
                                             var remoteProject = remoteVN.split(':')[1];
-                                            if(currentProject != remoteProject) {
+                                            if(!self.showOtherProjectTraffic &&
+                                               currentProject != remoteProject) {
                                                 externalType = 'externalProject';
                                             }
                                         } else {
@@ -896,9 +899,6 @@ define(
                                     value[val] = tagMap[parseInt(value[val])];
                                 }
                         });
-                        function formatVN(vnName) {
-                            return vnName.replace(/([^:]*):([^:]*):([^:]*)/,'$3 ($2)');
-                        }
                         //Strip-off the domain and project form FQN
                         $.each(['app','site','tier','deployment'],function(idx,tagName) {
                             if(typeof(value[tagName]) == 'string' && value[tagName].split(':').length == 3)
@@ -930,6 +930,10 @@ define(
                         TrafficGroupsView.tagsResponse = response;
                         TrafficGroupsView.tagMap = _.groupBy(_.map(_.result(response, '0.tags', []), 'tag'), 'tag_id');
                     });
+                    var currentProject = '';
+                    if(contrail.getCookie(cowc.COOKIE_PROJECT) != 'undefined') {
+                        currentProject = contrail.getCookie(cowc.COOKIE_PROJECT);
+                    }
                     var clientPostData = {
                         "async": false,
                         "formModelAttrs": {
@@ -942,7 +946,7 @@ define(
                                  " SUM(eps.client.out_pkts)",
                             "table_type": "STAT",
                             "table_name": "StatTable.EndpointSecurityStats.eps.client",
-                            "where": "(name Starts with " + contrail.getCookie(cowc.COOKIE_DOMAIN) + ':' + contrail.getCookie(cowc.COOKIE_PROJECT) + ")",
+                            "where": "(name Starts with " + contrail.getCookie(cowc.COOKIE_DOMAIN) + (currentProject ? ':' : '') + currentProject + ")",
                             "where_json": []
                         }
                     };
@@ -959,7 +963,7 @@ define(
                                  " SUM(eps.server.out_pkts)",
                             "table_type": "STAT",
                             "table_name": "StatTable.EndpointSecurityStats.eps.server",
-                            "where": "(name Starts with " + contrail.getCookie(cowc.COOKIE_DOMAIN) + ':' + contrail.getCookie(cowc.COOKIE_PROJECT) + ")",
+                            "where": "(name Starts with " + contrail.getCookie(cowc.COOKIE_DOMAIN) + (currentProject ? ':' : '') + currentProject + ")",
                             "where_json": []
                         }
                     };
@@ -1065,6 +1069,10 @@ define(
                      * @levels  #Indicates no of levels to be drawn
                      */
                     this.settingsView = new settingsView();
+                    if(contrail.getCookie(cowc.COOKIE_PROJECT) == 'undefined') {
+                        this.showOtherProjectTraffic = true;
+                        this.combineEmptyTags = true;
+                    }
                     this.renderTrafficChart();
                 }
             });
