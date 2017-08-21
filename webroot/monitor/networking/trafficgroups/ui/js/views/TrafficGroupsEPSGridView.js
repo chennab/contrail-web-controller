@@ -7,14 +7,15 @@ define([
     'contrail-view',
     'contrail-list-model',
 ], function (_, ContrailView, ContrailListModel) {
-    var TrafficGroupsSessionsView = ContrailView.extend({
+    var TrafficGroupsGridView = ContrailView.extend({
         el: $(contentContainer),
         render: function () {
             var self = this,
                 viewConfig = this.attributes.viewConfig,
+                elementId = viewConfig.tabid != null ? viewConfig.tabid : viewConfig.elementId,
                 contrailListModel = new ContrailListModel({data : viewConfig.data}),
-                tabTitle = viewConfig.names.join(' ' + cowc.ARROW_RIGHT_ICON + ' ');
-           self.renderView4Config($("#"+viewConfig.tabid), contrailListModel, self.getSessionsGridViewConfig(tabTitle));
+                title = viewConfig['title'];
+           self.renderView4Config($("#"+elementId), contrailListModel, self.getSessionsGridViewConfig(title));
         },
         getSessionsGridViewConfig: function (title) {
             return {
@@ -94,7 +95,14 @@ define([
                         {
                             field: 'SUM(eps.server.hits)',
                             name: 'Hits',
-                            hide: true
+                            hide: true,
+                            formatter: function (r,c,v,cd,dc) {
+                                if (dc['SUM(eps.traffic.hits)'] == null || dc['SUM(eps.traffic.hits)'] == '') {
+                                    return '-'
+                                } else {
+                                    return dc['SUM(eps.traffic.hits)'];
+                                }
+                            }
                         },
                         {
                             field: 'SUM(eps.traffic.initiator_session_count)',
@@ -118,7 +126,8 @@ define([
                             collapseable: false,
                             exportable: true,
                             searchable: true,
-                            columnPickable:true
+                            columnPickable:true,
+                            refreshable: false
                         }
                     },
                     columnHeader: {
@@ -402,5 +411,5 @@ define([
         });
         return tags;
     }
-    return TrafficGroupsSessionsView;
+    return TrafficGroupsGridView;
 });

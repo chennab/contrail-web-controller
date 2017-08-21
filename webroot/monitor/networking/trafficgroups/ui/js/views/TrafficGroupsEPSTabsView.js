@@ -43,15 +43,18 @@ define([
                 sessionData = this.sessionData
             _.each(sessionData.endpointStats, function(endpoint, idx) {
                 var targetIdx = (idx == 0) ? 1 : 0;
+                var names = [sessionData.endpointNames[idx], sessionData.endpointNames[targetIdx]];
                 tabConfig.push({
                     elementId: "Endpoint_" + idx + "_Stats",
                     title: 'Endpoint' + (idx + 1),
                     view: "TrafficGroupsEPSGridView",
+                    app: cowc.APP_CONTRAIL_CONTROLLER,
                     viewPathPrefix: "monitor/networking/trafficgroups/ui/js/views/",
                     viewConfig: {
                         data: endpoint,
                         tabid: "Endpoint_" + idx + "_Stats",
-                        names: [sessionData.endpointNames[idx], sessionData.endpointNames[targetIdx]]
+                        names: names,
+                        title: names.join(' ' + cowc.ARROW_RIGHT_ICON + ' ')
                     },
                     tabConfig: {
                        activate: function(event, ui) {

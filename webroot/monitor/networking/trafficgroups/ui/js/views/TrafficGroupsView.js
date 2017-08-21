@@ -292,6 +292,22 @@ define(
                         var ruleDetailsModel = new ContrailListModel(listModelConfig);
                     }
                 },
+                showEndPointStatsInGrid: function () {
+                    var self = this;
+                    $('#traffic-groups-link-info').html('');
+                    self.renderView4Config($('#traffic-groups-grid-view'), null, {
+                        elementId: 'traffic-groups-grid-view',
+                        view: "TrafficGroupsEPSGridView",
+                        viewPathPrefix:
+                        "monitor/networking/trafficgroups/ui/js/views/",
+                        app: cowc.APP_CONTRAIL_CONTROLLER,
+                        viewConfig: {
+                            data: self.filterdData,
+                            title: 'End Point Statistics',
+                            elementId: 'traffic-groups-grid-view'
+                        }
+                    })
+                },
                 getTagHierarchy: function(d) {
                     var srcHierarchy = [],
                         dstHierarchy = [],
@@ -1049,8 +1065,27 @@ define(
                             el: self.$el.find('#traffic-groups-radial-chart'),
                             model: new ContrailListModel(listModelConfig)
                         });
+                        $('.viewchange .chart-stats').addClass('active-color');
                         self.updateChart({
                             'freshData': true
+                        });
+                        $('.viewchange .grid-stats').on('click', function () {
+                            if ($('.viewchange .grid-stats').hasClass('active-color')) {
+                                return;
+                            }
+                            $('#traffic-groups-radial-chart').hide();
+                            $('#traffic-groups-grid-view').show();
+                            $('.viewchange .chart-stats, .viewchange .grid-stats').toggleClass('active-color');
+                            self.showEndPointStatsInGrid();
+                        });
+                        $('.viewchange .chart-stats').on('click', function () {
+                            if ($('.viewchange .chart-stats').hasClass('active-color')) {
+                                return;
+                            }
+                            $('#traffic-groups-radial-chart').show();
+                            $('#traffic-groups-grid-view').hide();
+                            $('.viewchange .chart-stats, .viewchange .grid-stats').toggleClass('active-color');
+                            self.updateChart();
                         });
                     });
                 },
