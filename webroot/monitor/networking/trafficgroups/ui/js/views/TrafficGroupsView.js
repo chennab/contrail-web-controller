@@ -362,6 +362,7 @@ define(
                                 linkCssClasses: ['implicitDeny', 'implicitAllow'],
                                 arcLabelXOffset: 0,
                                 arcLabelYOffset: [-12,-6],
+                                showLinkDirection: false,
                                 colorScale: function (item) {
                                     var levelKey = 'TRAFFIC_GROUP_COLOR_LEVEL'+item.level,
                                         unassignedColors = _.difference(cowc[levelKey], _.values(TrafficGroupsView.colorMap[item.level])),
@@ -710,25 +711,27 @@ define(
                 filterDataByEndpoints: function() {
                     var self = this;
                     self.filterdData =  _.filter(self.trafficData, function(d) {
-                        var isMatched = true;
+                        var isClientEP = true,
+                            isServerEP = true;
                         _.each(self.getTGSettings().filterByEndpoints,
                             function(endPoint) {
                             if(endPoint) {
-                                isMatched = true;
+                                isClientEP = isServerEP = true;
                                 _.each(endPoint.split(','), function(tag) {
                                   var tagObj = tag
                                         .split(cowc.DROPDOWN_VALUE_SEPARATOR),
                                       tagType = tagObj[1],
                                       tagName = tagObj[0];
-                                  isMatched = isMatched &&
-                                    (d[tagType] == tagName ||
-                                    d['eps.traffic.remote_' + tagType + '_id']
+                                  isClientEP = isClientEP &&
+                                    (d[tagType] == tagName);
+                                  isServerEP = isServerEP &&
+                                    (d['eps.traffic.remote_' + tagType + '_id']
                                          == tagName);
                                 });
-                                if(isMatched) return false;
+                                if(isClientEP || isServerEP) return false;
                             }
                         });
-                        return isMatched;
+                        return (isClientEP || isServerEP);
                     });
                 },
                 applySelectedFilter: function(modelObj) {
