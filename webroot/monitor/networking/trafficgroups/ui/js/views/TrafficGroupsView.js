@@ -20,6 +20,7 @@ define(
                 },
                 showOtherProjectTraffic: false,
                 combineEmptyTags: false,
+                applyColorByCategory: false,
                 filterdData: null,
                 resetTrafficStats: function(e) {
                     e.preventDefault();
@@ -380,15 +381,23 @@ define(
                                 arcLabelYOffset: [-12,-6],
                                 showLinkDirection: false,
                                 colorScale: function (item) {
-                                    var levelKey = 'TRAFFIC_GROUP_COLOR_LEVEL'+item.level,
-                                        unassignedColors = _.difference(cowc[levelKey], _.values(TrafficGroupsView.colorMap[item.level])),
+                                    var colorList = cowc['TRAFFIC_GROUP_COLOR_LEVEL'+item.level];
+                                    if(self.applyColorByCategory) {
+                                        colorList = cowc['TRAFFIC_GROUP_COLOR_LEVEL1']
+                                            .concat(cowc['TRAFFIC_GROUP_COLOR_LEVEL2']);
+                                    }
+                                    var unassignedColors = _.difference(colorList, _.values(TrafficGroupsView.colorMap[item.level])),
                                         itemName = item.displayLabels[item.level-1],
                                         extraColors = TrafficGroupsView.colorArray;
                                     if(unassignedColors.length == 0) {
                                         if(!extraColors[item.level] || extraColors[item.level].length == 0) {
-                                            extraColors[item.level] = cowc[levelKey].slice(0);
+                                            extraColors[item.level] = colorList.slice(0);
                                         }
                                         unassignedColors = extraColors[item.level];
+                                    }
+                                    if(self.applyColorByCategory && item.level == 2) {
+                                        var upperLevelColors = TrafficGroupsView.colorMap[item.level-1];
+                                        return upperLevelColors[item.displayLabels[0]];
                                     }
                                     if ( TrafficGroupsView.colorMap[item.level] == null) {
                                         TrafficGroupsView.colorMap[item.level] = {};
@@ -755,6 +764,12 @@ define(
                         oldFromTime = tgView.getTGSettings().from_time,
                         oldToTime = tgView.getTGSettings().to_time;
                     tgView.settingsModelObj = modelObj;
+
+                    //To retain applied categorization, adding to session storage
+                    sessionStorage.TG_CATEGORY = modelObj.get('groupByTagType');
+                    sessionStorage.TG_SUBCATEGORY = modelObj
+                                                    .get('subGroupByTagType');
+
                     tgView.filterDataByEndpoints();
                     var newTimeRange = tgView.getTGSettings().time_range,
                         newFromTime = tgView.getTGSettings().from_time,
@@ -854,10 +869,18 @@ define(
                             time_range = tgView.settingsModelObj.get('time_range');
                             from_time = tgView.settingsModelObj.get('from_time');
                             to_time = tgView.settingsModelObj.get('to_time');
-
                         } else {
-                            groupByTagType = ['app','deployment'];
-                            subGroupByTagType = ['tier'];
+                            if(sessionStorage.TG_CATEGORY) {
+                                groupByTagType = sessionStorage
+                                                .TG_CATEGORY.split(',');
+                                if(sessionStorage.TG_SUBCATEGORY) {
+                                    subGroupByTagType = sessionStorage
+                                                .TG_SUBCATEGORY.split(',');
+                                }
+                            } else {
+                                groupByTagType = ['app','deployment'];
+                                subGroupByTagType = ['tier'];
+                            }
                         }
                     return {
                         groupByTagType: groupByTagType,

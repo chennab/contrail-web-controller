@@ -105,7 +105,7 @@ define([
                                                                     templateId: cowc.TMP_EDITABLE_GRID_ACTION_VIEW,
                                                                     columns: [{
                                                                         elementId: "endpoint",
-                                                                        name: "Filter By:",
+                                                                        name: "Filter By",
                                                                         view: "FormHierarchicalDropdownView",
                                                                         viewConfig: {
                                                                             templateId: cowc.TMPL_EDITABLE_GRID_MULTISELECT_VIEW,
@@ -176,7 +176,7 @@ define([
                                                                 elementId: 'groupByTagType',
                                                                 view: 'FormMultiselectView',
                                                                 viewConfig: {
-                                                                    label: "Categorization",
+                                                                    label: "Category",
                                                                     templateId: cowc.TMPL_EDITABLE_GRID_MULTISELECT_WITH_ICON_VIEW,
                                                                     path: 'groupByTagType',
                                                                     icon: 'fa fa-info-circle',
@@ -195,7 +195,7 @@ define([
                                                                 elementId: 'subGroupByTagType',
                                                                 view: 'FormMultiselectView',
                                                                 viewConfig: {
-                                                                    label: "Subcategorization",
+                                                                    label: "Subcategory",
                                                                     templateId: cowc.TMPL_EDITABLE_GRID_MULTISELECT_WITH_ICON_VIEW,
                                                                     path: 'subGroupByTagType',
                                                                     icon: 'fa fa-info-circle',
