@@ -25,7 +25,6 @@ define(
                 resetTrafficStats: function(e) {
                     e.preventDefault();
                     tgView.renderTrafficChart();
-                    $(tgView.el).find('svg g').empty();
                 },
                 showSessionsInfo: function() {
                     require(['monitor/networking/trafficgroups/ui/js/views/TrafficGroupsEPSTabsView'], function(EPSTabsView) {
@@ -352,7 +351,6 @@ define(
                     return label;
                 },
                 updateChart: function(cfg) {
-                    $('#traffic-groups-legend-info').addClass('hidden');
                     var self = this,
                         extendConfig = {}
                     if(_.isEmpty(cfg)) {
@@ -595,18 +593,22 @@ define(
                     self.updateTGFilterSec();
                 },
                 chartRender: function() {
-                    var self = this;
-                    var data = self.filterdData ? JSON.parse(JSON.stringify(self.filterdData))
-                             : self.viewInst.model.getItems();
-                    if(data && data.length == 0) {
-                        $('#traffic-groups-radial-chart').empty();
-                        var noData = "<h4 class='noStatsMsg'>"
-                            + ctwl.TRAFFIC_GROUPS_NO_DATA + "</h4>"
-                        $('#traffic-groups-radial-chart').html(noData);
+                    if($('.viewchange .chart-stats').hasClass('active-color')) {
+                        var self = this;
+                        var data = self.filterdData ? JSON.parse(JSON.stringify(self.filterdData))
+                                 : self.viewInst.model.getItems();
+                        if(data && data.length == 0) {
+                            $('#traffic-groups-radial-chart').empty();
+                            var noData = "<h4 class='noStatsMsg'>"
+                                + ctwl.TRAFFIC_GROUPS_NO_DATA + "</h4>"
+                            $('#traffic-groups-radial-chart').html(noData);
+                        } else {
+                            self.viewInst.render(data, self.chartInfo.chartView);
+                        }
                     } else {
-                        self.viewInst.render(data, self.chartInfo.chartView);
-                        $('#traffic-groups-legend-info').removeClass('hidden');
+                        this.showEndPointStatsInGrid();
                     }
+                    $('#traffic-groups-legend-info').removeClass('hidden');
                 },
                 addtionalEvents: function() {
                     return [{
@@ -949,7 +951,13 @@ define(
                     });
                     return data;
                 },
-                renderTrafficChart: function() {
+                resetChartView: function() {
+                   $('#traffic-groups-legend-info').addClass('hidden');
+                   $(this.el).find('svg g').empty();
+                   $('#traffic-groups-grid-view').empty();
+                },
+                renderTrafficChart: function(option) {
+                    this.resetChartView();
                     var self = this,
                         fromTime = this.getTGSettings().time_range,
                         toTime = 0;
@@ -1088,27 +1096,29 @@ define(
                             el: self.$el.find('#traffic-groups-radial-chart'),
                             model: new ContrailListModel(listModelConfig)
                         });
-                        $('.viewchange .chart-stats').addClass('active-color');
+                        if(option == 'onload') {
+                            $('.viewchange .chart-stats').addClass('active-color');
+                            $('.viewchange .grid-stats').on('click', function () {
+                                if ($('.viewchange .grid-stats').hasClass('active-color')) {
+                                    return;
+                                }
+                                $('#traffic-groups-radial-chart').hide();
+                                $('#traffic-groups-grid-view').show();
+                                $('.viewchange .chart-stats, .viewchange .grid-stats').toggleClass('active-color');
+                                self.showEndPointStatsInGrid();
+                            });
+                            $('.viewchange .chart-stats').on('click', function () {
+                                if ($('.viewchange .chart-stats').hasClass('active-color')) {
+                                    return;
+                                }
+                                $('#traffic-groups-radial-chart').show();
+                                $('#traffic-groups-grid-view').hide();
+                                $('.viewchange .chart-stats, .viewchange .grid-stats').toggleClass('active-color');
+                                self.updateChart();
+                            });
+                        }
                         self.updateChart({
                             'freshData': true
-                        });
-                        $('.viewchange .grid-stats').on('click', function () {
-                            if ($('.viewchange .grid-stats').hasClass('active-color')) {
-                                return;
-                            }
-                            $('#traffic-groups-radial-chart').hide();
-                            $('#traffic-groups-grid-view').show();
-                            $('.viewchange .chart-stats, .viewchange .grid-stats').toggleClass('active-color');
-                            self.showEndPointStatsInGrid();
-                        });
-                        $('.viewchange .chart-stats').on('click', function () {
-                            if ($('.viewchange .chart-stats').hasClass('active-color')) {
-                                return;
-                            }
-                            $('#traffic-groups-radial-chart').show();
-                            $('#traffic-groups-grid-view').hide();
-                            $('.viewchange .chart-stats, .viewchange .grid-stats').toggleClass('active-color');
-                            self.updateChart();
                         });
                     });
                 },
@@ -1134,7 +1144,7 @@ define(
                         this.showOtherProjectTraffic = true;
                         this.combineEmptyTags = true;
                     }
-                    this.renderTrafficChart();
+                    this.renderTrafficChart('onload');
                 }
             });
             return TrafficGroupsView;
