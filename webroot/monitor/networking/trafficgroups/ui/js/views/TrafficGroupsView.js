@@ -20,7 +20,8 @@ define(
                 },
                 showOtherProjectTraffic: false,
                 combineEmptyTags: false,
-                applyColorByCategory: false,
+                matchArcsColorByCategory: false,
+                matchTopLevelArcsColor: false,
                 filterdData: null,
                 resetTrafficStats: function(e) {
                     e.preventDefault();
@@ -380,9 +381,13 @@ define(
                                 showLinkDirection: false,
                                 colorScale: function (item) {
                                     var colorList = cowc['TRAFFIC_GROUP_COLOR_LEVEL'+item.level];
-                                    if(self.applyColorByCategory) {
+                                    if(self.matchArcsColorByCategory) {
                                         colorList = cowc['TRAFFIC_GROUP_COLOR_LEVEL1']
                                             .concat(cowc['TRAFFIC_GROUP_COLOR_LEVEL2']);
+                                    }
+                                    if(item.level == 1 && self.matchTopLevelArcsColor) {
+                                        //Apply single colour for all arcs in top level
+                                        colorList = colorList.slice(0,1);
                                     }
                                     var unassignedColors = _.difference(colorList, _.values(TrafficGroupsView.colorMap[item.level])),
                                         itemName = item.displayLabels[item.level-1],
@@ -393,7 +398,7 @@ define(
                                         }
                                         unassignedColors = extraColors[item.level];
                                     }
-                                    if(self.applyColorByCategory && item.level == 2) {
+                                    if(self.matchArcsColorByCategory && item.level > 1) {
                                         var upperLevelColors = TrafficGroupsView.colorMap[item.level-1];
                                         return upperLevelColors[item.displayLabels[0]];
                                     }
@@ -838,6 +843,11 @@ define(
                         .html(filterViewTmpl({
                             endpoints : filterByTags
                     }));
+                    filterByTags.length ?
+                        $('#filterByTagNameSec .fa-filter')
+                            .removeClass('noFiltersApplied') :
+                        $('#filterByTagNameSec .fa-filter')
+                            .addClass('noFiltersApplied');
                     $('.tgRemoveFilter').on('click', this.removeFilter);
                     $('#filterByTagNameSec .dropdown-menu')
                         .on('click', function(e) {
