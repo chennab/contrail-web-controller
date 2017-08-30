@@ -843,11 +843,14 @@ define(
                         .html(filterViewTmpl({
                             endpoints : filterByTags
                     }));
-                    filterByTags.length ?
-                        $('#filterByTagNameSec .fa-filter')
-                            .removeClass('noFiltersApplied') :
-                        $('#filterByTagNameSec .fa-filter')
-                            .addClass('noFiltersApplied');
+                    var filterIconEle =  $('#filterByTagNameSec a');
+                    if(filterByTags.length) {
+                        filterIconEle.removeClass('noFiltersApplied')
+                        filterIconEle.attr('data-action', 'clear');
+                    } else {
+                        filterIconEle.addClass('noFiltersApplied');
+                        filterIconEle.removeAttr('data-action');
+                    }
                     $('.tgRemoveFilter').on('click', this.removeFilter);
                     $('#filterByTagNameSec .dropdown-menu')
                         .on('click', function(e) {
