@@ -21,7 +21,8 @@ define(
                 showOtherProjectTraffic: false,
                 combineEmptyTags: false,
                 matchArcsColorByCategory: false,
-                matchTopLevelArcsColor: false,
+                // Provide colours list for top level arcs
+                topLevelArcColors: cowc['TRAFFIC_GROUP_COLOR_LEVEL1'].slice(0,1),
                 filterdData: null,
                 resetTrafficStats: function(e) {
                     e.preventDefault();
@@ -351,6 +352,12 @@ define(
                     }
                     return label;
                 },
+                isImplictRule: function(d, key) {
+                    return (typeof d['eps.__key'] == 'string' &&
+                           d['eps.__key'].indexOf(key) > -1) &&
+                           (d['SUM(eps.traffic.in_bytes)'] ||
+                           d['SUM(eps.traffic.out_bytes)']);
+                },
                 updateChart: function(cfg) {
                     var self = this,
                         extendConfig = {}
@@ -362,6 +369,7 @@ define(
                     } else if(cfg) {
                         extendConfig = cfg;
                     }
+                    TrafficGroupsView.colorMap = {};
                     var config = {
                         id: 'chartBox',
                         //levels : levels,
@@ -378,16 +386,17 @@ define(
                                 linkCssClasses: ['implicitDeny', 'implicitAllow'],
                                 arcLabelXOffset: 0,
                                 arcLabelYOffset: [-12,-6],
-                                showLinkDirection: false,
+                                showLinkDirection: true,
+                                isEndpointMatched: self.isRecordMatched,
                                 colorScale: function (item) {
                                     var colorList = cowc['TRAFFIC_GROUP_COLOR_LEVEL'+item.level];
                                     if(self.matchArcsColorByCategory) {
                                         colorList = cowc['TRAFFIC_GROUP_COLOR_LEVEL1']
                                             .concat(cowc['TRAFFIC_GROUP_COLOR_LEVEL2']);
                                     }
-                                    if(item.level == 1 && self.matchTopLevelArcsColor) {
-                                        //Apply single colour for all arcs in top level
-                                        colorList = colorList.slice(0,1);
+                                    if(item.level == 1 && self.topLevelArcColors
+                                        && self.getCategorizationObj().length > 1) {
+                                        colorList = self.topLevelArcColors;
                                     }
                                     var unassignedColors = _.difference(colorList, _.values(TrafficGroupsView.colorMap[item.level])),
                                         itemName = item.displayLabels[item.level-1],
@@ -412,7 +421,7 @@ define(
                                 },
                                 showLinkInfo: self.showLinkInfo,
                                 drillDownLevel: self.getCategorizationObj().length,
-                                expandLevels: 'disable',
+                                expandLevels: 'enable',
                                 hierarchyConfig: {
                                     parse: function (d) {
                                         var hierarchyObj = self.getTagHierarchy(d),
@@ -429,12 +438,10 @@ define(
                                             implicitAllowKey = ifNull(_.find(cowc.DEFAULT_FIREWALL_RULES, function(rule) {
                                                 return rule.name == 'Implicit Allow';
                                             }), '').uuid;
-                                        if(typeof d['eps.__key'] == 'string' &&
-                                            d['eps.__key'].indexOf(implicitDenyKey) > -1) {
+                                        if(self.isImplictRule(d, implicitDenyKey)) {
                                             d.linkCssClass = 'implicitDeny';
                                         }
-                                        if(typeof d['eps.__key'] == 'string' &&
-                                            d['eps.__key'].indexOf(implicitAllowKey) > -1) {
+                                        if(self.isImplictRule(d, implicitAllowKey)) {
                                             d.linkCssClass = 'implicitAllow';
                                         }
                                         $.each(srcHierarchy, function(idx) {
@@ -613,7 +620,11 @@ define(
                     } else {
                         this.showEndPointStatsInGrid();
                     }
-                    $('#traffic-groups-legend-info').removeClass('hidden');
+                    if(this.filterdData.length) {
+                        $('#traffic-groups-legend-info').removeClass('hidden');
+                    } else {
+                        $('#traffic-groups-legend-info').addClass('hidden');
+                    }
                 },
                 addtionalEvents: function() {
                     return [{
@@ -718,13 +729,12 @@ define(
                 isRecordMatched: function(names, record, data) {
                     var arcType = data.arcType ? '_' + data.arcType : '',
                         isMatched = true,
-                        self = this,
-                        selectedTagTypes = this.getCategorizationObj();
+                        selectedTagTypes = tgView.getCategorizationObj();
                     for(var i = 0; i < names.length; i++) {
                         var tagTypes = selectedTagTypes[i].split('-'),
                             tagName =  _.compact(_.map(tagTypes, function(tag) {
                                             return record[tag] ? record[tag]
-                                            : self.getTagLabel(tag, record)
+                                            : tgView.getTagLabel(tag, record)
                                     })).join('-');
                        tagName += arcType;
                        isMatched = isMatched && (tagName == names[i]);
