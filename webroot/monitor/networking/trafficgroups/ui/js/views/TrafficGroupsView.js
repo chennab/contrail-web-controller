@@ -47,7 +47,7 @@ define(
                         epsTabsView.render(linkData);
                     });
                 },
-                showLinkInfo(d,el,e,chartScope) {
+                showLinkInfo(d,el,e) {
                     var self = this,
                         ruleUUIDs = [], ruleKeys = [], level = 1;
                     if (_.result(d, 'innerPoints.length') == 4)
@@ -120,13 +120,13 @@ define(
                         });
                     });
                     ruleUUIDs = _.uniq(ruleUUIDs);
-                    _.each(chartScope.ribbons, function (ribbon) {
+                    _.each(self.chartInfo.component.ribbons, function (ribbon) {
                        ribbon.selected = false;
                        ribbon.active = false;
                     });
                     d.selected = true;
                     d.active = true;
-                    chartScope._render();
+                    self.chartInfo.component._render();
                     if (ruleUUIDs.length > 0) {
                         var listModelConfig = {
                             remote: {
@@ -271,11 +271,10 @@ define(
                                         }
                                         $('.allSessionInfo').on('click', self.showSessionsInfo);
                                         $('#traffic-groups-radial-chart')
-                                         .on('click','',{ thisChart:chartScope,thisRibbon:d },
-                                          function(ev){
-                                            if(ev.data.thisChart && $(ev.target)
-                                              .parents('#'+ev.data.thisChart.id).length == 0){
-                                                _.each(ev.data.thisChart.ribbons,
+                                         .on('click', function(ev) {
+                                            if($(ev.target)
+                                                .parents('#'+self.chartInfo.component.id).length == 0) {
+                                                _.each(self.chartInfo.component.ribbons,
                                                  function (ribbon) {
                                                    ribbon.selected = false;
                                                    ribbon.active = false;
@@ -283,7 +282,7 @@ define(
                                                 $('#traffic-groups-radial-chart')
                                                 .removeClass('showLinkInfo');
                                                 $('#traffic-groups-link-info').html('');
-                                                ev.data.thisChart._render();
+                                                self.chartInfo.component._render();
                                             }
                                         });
                                     }
