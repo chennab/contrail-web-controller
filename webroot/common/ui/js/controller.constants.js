@@ -971,6 +971,31 @@ define([
                                 {text:'Deployment', value: 'deployment'},
                                 {text: 'Site', value: 'site'},
                                 {text: 'Label', value: 'label'}];
+        ///Application Policy Set
+        this.APPLICATION_POLICY_SET_LIST_VIEW_ID = "application-policy-set-list-view";
+        this.APPLICATION_POLICY_SET_SECTION_ID = 'application-policy-set-section';
+        this.APPLICATION_POLICY_SET = 'application-policy-set';
+        this.APPLICATION_POLICY_SET_GRID_ID = "application-policy-set-grid";
+        this.APPLICATION_POLICY_SET_PREFIX_ID = "applicationpolicyset";
+        this.APS_ADDRESS_GRP_LIST_VIEW_ID = "aps-address-group-list-view";
+        this.APS_ADDRESS_GRP_SECTION_ID = 'aps-address-group-section';
+        this.APS_ADDRESS_GRP_ID = 'aps-address-group';
+        this.APS_ADDRESS_GRP_GRID_ID = "aps-address-group-grid";
+        this.APS_ADDRESS_GRP_LIST_VIEW_ID = "aps-address-group-list-view";
+        this.APS_SERVICE_GRP_LIST_VIEW_ID = "aps-service-group-list-view";
+        this.APS_SERVICE_GRP_SECTION_ID = 'aps-service-group-section';
+        this.APS_SERVICE_GRP_ID = 'aps-service-group';
+        this.APS_SERVICE_GRP_GRID_ID = "aps-service-group-grid";
+        this.APS_SERVICE_GRP_LIST_VIEW_ID = "aps-service-group-list-view";
+        this.APS_TAG_SECTION_ID = 'aps-tag-section';
+        this.APS_TAG_ID = 'aps-tag';
+        this.APS_TAG_GRID_ID = "aps-tag-grid";
+        this.APS_TAG_LIST_VIEW_ID = "aps-tag-list-view";
+        this.NEW_APPLICATION_POLICY_SET_LIST_VIEW_ID = "new-application-policy-set-list-view";
+        this.NEW_APPLICATION_POLICY_SET_SECTION_ID = 'new-application-policy-set-section';
+        this.NEW_APPLICATION_POLICY_SET = 'new-application-policy-set';
+        this.NEW_APPLICATION_POLICY_SET_GRID_ID = "new-application-policy-set-grid";
+        
         
         this.RULE_DATA_TAGS = 'rule-data-tags';
         this.RULE_DATA_ADDRESS_GROUPS = 'rule-data-address-groups';

@@ -1,0 +1,261 @@
+/*
+ * Copyright (c) 2017 Juniper Networks, Inc. All rights reserved.
+ */
+
+define([
+    'underscore',
+    'contrail-view',
+    'config/firewall/applicationpolicyset/common/addressgroups/ui/js/models/addressGroupModel',
+    'config/firewall/applicationpolicyset/common/addressgroups/ui/js/views/addressGroupEditView'
+], function (_, ContrailView, AddressGroupModel, AddressGroupEditView) {
+    var addressGroupEditView = new AddressGroupEditView(),
+        gridElId = "#" + ctwc.APS_ADDRESS_GRP_GRID_ID;
+
+    var addressGroupGridView = ContrailView.extend({
+        el: $(contentContainer),
+        render: function () {
+            var self = this,
+                viewConfig = this.attributes.viewConfig,
+                pagerOptions = viewConfig['pagerOptions'];
+            self.renderView4Config(self.$el, self.model,
+                                   getAddressGroupGridViewConfig(viewConfig));
+        }
+    });
+
+    var getAddressGroupGridViewConfig = function (viewConfig) {
+        return {
+            elementId: cowu.formatElementId([ctwc.APS_ADDRESS_GRP_LIST_VIEW_ID]),
+            view: "SectionView",
+            viewConfig: {
+                rows: [
+                    {
+                        columns: [
+                            {
+                                elementId: ctwc.APS_ADDRESS_GRP_GRID_ID,
+                                title: ctwl.TITLE_SEC_GRP_ADDRESS_GROUP,
+                                view: "GridView",
+                                viewConfig: {
+                                    elementConfig: getConfiguration(viewConfig)
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+    };
+    var getConfiguration = function (viewConfig) {
+        var gridElementConfig = {
+            header: {
+                title: {
+                    text: ctwl.TITLE_SEC_GRP_ADDRESS_GROUP
+                },
+                advanceControls: getHeaderActionConfig(viewConfig),
+            },
+            body: {
+                options: {
+                    checkboxSelectable: {
+                        onNothingChecked: function(e){
+                            $('#btnDeleteAddressGrp').addClass('disabled-link');
+                        },
+                        onSomethingChecked: function(e){
+                            $('#btnDeleteAddressGrp').removeClass('disabled-link');
+                        }
+                    },
+                    actionCell: getRowActionConfig(viewConfig),
+                    detail: {
+                        template: cowu.generateDetailTemplateHTML(
+                                       getAddressGrpDetailsTemplateConfig(),
+                                       cowc.APP_CONTRAIL_CONTROLLER)
+                    }
+                },
+                dataSource: {},
+                statusMessages: {
+                    loading: {
+                        text: 'Loading Address Groups..'
+                    },
+                    empty: {
+                        text: 'No Address Groups Found.'
+                    }
+                }
+            },
+            columnHeader: {
+                columns: [
+                        {
+                             field: 'name',
+                             name: 'Name',
+                             id: 'name'
+                        },
+                        {
+                            id: "prefix",
+                            field: "prefix",
+                            name: "Prefix",
+                            formatter: prefixFormatter,
+                            sortable: {
+                                sortBy: 'formattedValue'
+                            }
+                        }
+                ]
+            },
+        };
+        return gridElementConfig;
+    };
+    function getRowActionConfig(viewConfig) {
+        var rowActionConfig = [
+            ctwgc.getEditConfig('Edit', function(rowIndex) {
+                var dataView = $('#' + ctwc.APS_ADDRESS_GRP_GRID_ID).data("contrailGrid")._dataView;
+                addressGroupEditView.model = new AddressGroupModel(dataView.getItem(rowIndex));
+                addressGroupEditView.renderAddressGroup({
+                                      'mode':'edit',
+                                      'viewConfig': viewConfig,
+                                      'isGlobal': viewConfig.isGlobal
+                });
+            }),
+            ctwgc.getDeleteConfig('Delete', function(rowIndex) {
+               var dataItem = $('#' + ctwc.APS_ADDRESS_GRP_GRID_ID).data('contrailGrid')._dataView.getItem(rowIndex);
+               addressGroupEditView.model = new AddressGroupModel(dataItem);
+               addressGroupEditView.renderAddressGroup({
+                                      selectedGridData: [dataItem],
+                                      'viewConfig': viewConfig,
+                                      'mode':'delete'
+               });
+           })
+        ];
+        return rowActionConfig;
+    }
+    function getHeaderActionConfig(viewConfig) {
+    	var headerActionConfig = [
+    		{
+                "type" : "link",
+                "title" : ctwl.TITLE_ADDRESS_GROUP_MULTI_DELETE,
+                "iconClass": 'fa fa-trash',
+                "linkElementId": 'btnDeleteAddressGrp',
+                "onClick" : function() {
+                    var addressGroupModel = new AddressGroupModel();
+                    var checkedRows = $('#' + ctwc.APS_ADDRESS_GRP_GRID_ID).data("contrailGrid").getCheckedRows();
+                    if(checkedRows && checkedRows.length > 0) {
+                    	addressGroupEditView.model = addressGroupModel;
+                    	addressGroupEditView.renderAddressGroup({
+                            	selectedGridData: checkedRows,
+                            	'viewConfig': viewConfig,
+                                'mode':'delete'
+                            }
+                        );
+                    }
+                }
+
+            },
+            {
+                "type": "link",
+                "title": ctwl.TITLE_CREATE_ADDRESS_GROUP,
+                "iconClass": "fa fa-plus",
+                "onClick": function () {
+                	addressGroupEditView.model = new AddressGroupModel();
+                	addressGroupEditView.renderAddressGroup({
+                                              'mode': 'add',
+                                              'viewConfig': viewConfig,
+                                              'isGlobal': viewConfig.isGlobal
+                    });
+                }
+            }
+
+        ];
+        return headerActionConfig;
+    }
+    function getAddressGrpDetailsTemplateConfig() {
+        return {
+            templateGenerator: 'RowSectionTemplateGenerator',
+            templateGeneratorConfig: {
+                rows: [
+                       {
+                        templateGenerator: 'ColumnSectionTemplateGenerator',
+                        templateGeneratorConfig: {
+                            columns: [
+                                {
+                                    class: 'col-xs-12',
+                                    rows: [
+                                        {
+                                            title: ctwl.CFG_VN_TITLE_DETAILS,
+                                            templateGenerator: 'BlockListTemplateGenerator',
+                                            templateGeneratorConfig: [
+                                                {
+                                                    label: 'Name',
+                                                    key: 'name',
+                                                    keyClass:'col-xs-4',
+                                                    templateGenerator: 'TextGenerator'
+                                                },
+                                                {
+                                                    label: 'Display Name',
+                                                    key: 'display_name',
+                                                    keyClass:'col-xs-4',
+                                                    templateGenerator: 'TextGenerator'
+                                                },
+                                                {
+                                                    label: 'UUID',
+                                                    key: 'uuid',
+                                                    keyClass:'col-xs-4',
+                                                    templateGenerator: 'TextGenerator'
+                                                },
+                                                {
+                                                    key: 'uuid',
+                                                    templateGenerator: 'TextGenerator',
+                                                    label: 'Prefixes',
+                                                    keyClass:'col-xs-4',
+                                                    templateGeneratorConfig: {
+                                                        formatter: 'addressGroupFormatter'
+                                                    }
+                                                }
+                                                
+                                            ].concat(ctwu.getTagsExpandDetails())
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        };
+    };
+    this.addressGroupFormatter = function(value, dc) {
+        return prefixFormatter(null, null, null, value, dc, true);
+    };
+    function prefixFormatter(r, c, v, cd, dc, showAll) {
+        var prefixlList = [], returnString = '';
+        var  subnet = getValueByJsonPath(dc, 'address_group_prefix;subnet',[]);
+        for(var i = 0; i < subnet.length; i++){
+            var prefix = subnet[i].ip_prefix + '/'+ subnet[i].ip_prefix_len;
+            var prefixText = '<span>'+ prefix +'</span>';
+            prefixlList.push(prefixText);
+        }
+        if ((null != showAll) && (true == showAll)) {
+        	if(prefixlList.length > 0){
+        		for (var k = 0; k < prefixlList.length; k++) {
+                    if (typeof prefixlList[k] !== "undefined") {
+                        returnString += prefixlList[k] + "<br>";
+                    }
+                }
+                return returnString;
+        	}else{
+        		return '-';
+        	}
+        }
+        if(prefixlList.length > 0){
+            for(var j = 0; j< prefixlList.length,j < 2; j++){
+                if(prefixlList[j]) {
+                    returnString += prefixlList[j] + "<br>";
+                }
+            }
+            if (prefixlList.length > 2) {
+                returnString += '<span class="moredataText">(' +
+                    (prefixlList.length-2) + ' more)</span> \
+                    <span class="moredata" style="display:none;" ></span>';
+            }
+        }else{
+        	returnString = '-';
+        }
+        return  returnString;
+    }
+   return addressGroupGridView;
+});
+

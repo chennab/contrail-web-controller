@@ -807,7 +807,7 @@ define([
 
         this.TMPL_CORE_GENERIC_EDIT = 'core-generic-edit-form-template';
         this.TMPL_CORE_GENERIC_DEL = 'core-generic-delete-form-template';
-
+        this.TMPL_APPLICATION_POLICY_SET = 'application-policy-set-edit-form-template';
         this.CONFIG_LINK_LOCAL_SERVICES_PAGE_ID = 'config-link-local-services-page';
         this.CONFIG_LINK_LOCAL_SERVICES_LIST_VIEW_ID = 'config-link-local-services-list';
         this.CONFIG_LINK_LOCAL_SERVICES_SECTION_ID = 'lls';
