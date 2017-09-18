@@ -3,7 +3,7 @@
  */
 
 define([
-    'underscore',
+    'lodash',
     'contrail-view',
     'knockback',
     'config/networking/policy/ui/js/views/policyFormatters',
@@ -14,7 +14,7 @@ define([
     var formId = '#' + modalId + '-form';
     var self;
     var fwPolicyFormatter = new FwPolicyFormatter();
-
+    var policyFormatters =  new PolicyFormatters();
     var fwPolicyEditEditView = ContrailView.extend({
         renderAddEditFWPolicy: function (options) {
             var editTemplate =
@@ -169,6 +169,12 @@ define([
                         {data: [{type: 'address-groups'}]})
             });
 
+            getAjaxs[3] = $.ajax({
+                url:"/api/tenants/config/service-instance-templates/"
+                + 'dummy',
+                type:"GET"
+            });
+
             $.when.apply($, getAjaxs).then(
                 function () {
                     //all success
@@ -298,6 +304,57 @@ define([
                         parent : "any_workload" });
                     addrFields.push({text : 'Any Workload', value : 'any_workload', children : anyList});
                     returnArr["addrFields"] = addrFields;
+
+                    //service instance
+                    var sts = jsonPath(results[3][0],
+                    "$.service_templates[*].service-template");
+                    returnArr["service_instances"] = [];
+                    returnArr["service_instances_ref"] = [];
+                    var analyzerInsts = [];
+                    var serviceInsts = [];
+                    var serviceInstsRef = [];
+                    if (null !== sts && sts.length > 0) {
+                        for (var i = 0; i < sts.length; i++) {
+                            var serviceTemplateMode = getValueByJsonPath(sts[i],
+                                    "service_template_properties;service_mode",
+                                    "");
+                            var serviceTemplateType = getValueByJsonPath(sts[i],
+                                    "service_template_properties;service_type",
+                                    "");
+                            if (typeof sts[i].service_instance_back_refs
+                                                      !== "undefined" &&
+                                sts[i].service_instance_back_refs.length > 0) {
+                                var si_backRef =
+                                    sts[i].service_instance_back_refs;
+                                var si_backRef_len =
+                                   sts[i].service_instance_back_refs.length;
+                                for (var j = 0; j < si_backRef_len; j++) {
+                                    var siBackRefTo = getValueByJsonPath(
+                                                  si_backRef[j], "to" , []);
+                                    var text = fqnameDisplayFormat(
+                                                    siBackRefTo ,
+                                                    selectedDomain,
+                                                    selectedProject);
+                                    var si_backRef_join = siBackRefTo.join(":");
+                                    var si_val_obj = {
+                                                         "text":text,
+                                                         "value":si_backRef_join
+                                                     };
+                                    if(serviceTemplateType == "analyzer") {
+                                        analyzerInsts.push(si_val_obj);
+                                    }
+                                    var si_val_objClon =
+                                            $.extend(true,{},si_val_obj);
+                                    serviceInsts.push(si_val_objClon);
+                                    serviceInstsRef[si_val_obj.value] =
+                                            si_val_objClon.value;
+                                }
+                            }
+                        }
+                    }
+                    returnArr["service_instances"] = serviceInsts;
+                    returnArr["service_instances_ref"] = serviceInstsRef;
+                    returnArr["analyzerInsts"] = analyzerInsts;
                     callback(returnArr);
                 }
             )
@@ -1085,8 +1142,8 @@ define([
                                                   {text: 'Site', value: 'site'}]
                                        }
                                       }
-                                }/*,
-                                {
+                                },
+                                /*{
                                  elementId: 'log_checked',
                                  name: 'Log',
                                  view: "FormCheckboxView",
@@ -1109,7 +1166,7 @@ define([
                                     path: 'apply_service_check',
                                     dataBindValue: 'apply_service_check()'
                                     }
-                                },
+                                },*/
                                 {
                                  elementId: 'mirror_to_check',
                                  name: 'Mirror',
@@ -1121,7 +1178,7 @@ define([
                                      path: 'mirror_to_check',
                                      dataBindValue: 'mirror_to_check()'
                                     }
-                                },
+                                },/*
                                 {
                                     elementId: 'qos_action_check',
                                     name: 'QoS',
@@ -1160,8 +1217,8 @@ define([
                                      }
                                 }
                             ]
-                            },getMirroringViewConfig(isDisable, allData),
-                            {
+                            }*/,getMirroringViewConfig(allData),
+                            /*{
                             columns: [
                                 {
                                     elementId: 'QoS',
@@ -1207,7 +1264,7 @@ define([
 
     }
 
-    var getMirroringViewConfig = function(isDisable, allData) {
+    var getMirroringViewConfig = function(allData) {
         var routingInstance = {};
         routingInstance.data = [];
         routingInstance.data[0] = {'type':'routing-instances', 'fields':''};

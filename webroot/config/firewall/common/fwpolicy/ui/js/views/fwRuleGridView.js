@@ -433,14 +433,14 @@ define([
                                     templateGeneratorConfig: {
                                         formatter: "matchFormatter"
                                     }
-                                }/*,{
-                                    key: "action_list.apply_service",
+                                },{
+                                    key: "action_list.mirror_to",
                                     templateGenerator: "TextGenerator",
-                                    label: "Simple Actions",
+                                    label: "Mirroring",
                                     templateGeneratorConfig: {
-                                        formatter: "simpleActionFormatter"
+                                        formatter: "mirroringFormatter"
                                     }
-                                }*/]
+                                }]
                            }]
                       }]
                     }
@@ -475,6 +475,10 @@ define([
 
     this.endPoint2Formatter = function(v, dc) {
         return fwRuleFormatter.endPoint2Formatter("", "", v, "", dc);
+    };
+
+    this.mirroringFormatter = function(v, dc) {
+        return fwRuleFormatter.mirroringFormatter("", "", v, "", dc);
     };
 
     this.matchFormatter = function(v, dc) {

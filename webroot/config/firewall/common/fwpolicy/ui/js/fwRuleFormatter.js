@@ -175,6 +175,161 @@
                     "action_list;apply_service", [], false);
                 return simpleAction.length > 0 ? simpleAction.join(',') : '-';
             };
+
+            /*
+             * mirroringFormatter
+             */
+
+            this.mirroringFormatter = function(d, c, v, cd, dc) {
+                var mirror = "",
+                    nicAssistedMirroring = getValueByJsonPath(dc,
+                            "action_list;" +
+                            "mirror_to;nic_assisted_mirroring", false),
+                    nicAssistedVLAN = getValueByJsonPath(dc,
+                            "action_list;" +
+                            "mirror_to;nic_assisted_mirroring_vlan", false),
+                    analyzerIP = getValueByJsonPath(dc,
+                            "action_list;" +
+                            "mirror_to;analyzer_ip_address", null),
+                    udpPort = getValueByJsonPath(dc,
+                            "action_list;" +
+                            "mirror_to;udp_port", null),
+                    analyzerName = getValueByJsonPath(dc,
+                            "action_list;" +
+                            "mirror_to;analyzer_name", null),
+                    routingInst = getValueByJsonPath(dc,
+                            "action_list;" +
+                            "mirror_to;routing_instance", null),
+                    jnprHeader = getValueByJsonPath(dc,
+                            "action_list;" +
+                            "mirror_to;juniper_header", null),
+                    analyzerMAC = getValueByJsonPath(dc,
+                            "action_list;" +
+                            "mirror_to;analyzer_mac_address", null),
+                    mirrorDirection = getValueByJsonPath(dc,
+                            "action_list;" +
+                            "traffic_direction", null),
+                    nhMode = getValueByJsonPath(dc,
+                            "action_list;" +
+                            "mirror_to;nh_mode", null),
+                    vtepDestIP, vtepDestMAC, VxLANId;
+                if(analyzerName) {
+                    mirror += this.addTableRow("Analyzer Name", analyzerName);
+                } else {
+                    return "-";
+                }
+
+                if(nicAssistedMirroring) {
+                    nicAssistedMirroring = nicAssistedMirroring ? "Enabled" : "Disabled";
+                    mirror += this.addTableRow("NIC Assisted Mirroring", nicAssistedMirroring);
+                    mirror += this.addTableRow("NIC Assisted VLAN", nicAssistedVLAN);
+                    return "<table style='width:100%'><tbody>" + mirror + "</tbody></table>";
+                } else {
+                    nicAssistedMirroring = nicAssistedMirroring ? "Enabled" : "Disabled";
+                    //mirror += this.addTableRow("NIC Assisted Mirroring", nicAssistedMirroring);
+                }
+
+                if(analyzerIP) {
+                    mirror += this.addTableRow("Analyzer IP", analyzerIP);
+                } else {
+                    mirror += this.addTableRow("Analyzer IP", "-");
+                }
+
+                if(analyzerMAC) {
+                    mirror += this.addTableRow("Analyzer MAC", analyzerMAC);
+                } else {
+                    mirror += this.addTableRow("Analyzer MAC", "-");
+                }
+
+                if(udpPort) {
+                    mirror += this.addTableRow("UDP Port", udpPort);
+                } else {
+                    mirror += this.addTableRow("UDP Port", "-");
+                }
+
+                if(jnprHeader !== null) {
+                    jnprHeader = jnprHeader === true ? "Enabled" : "Disabled";
+                    mirror += this.addTableRow("Juniper Header", jnprHeader);
+                } else {
+                    mirror += this.addTableRow("Juniper Header", "-");
+                }
+
+                if(routingInst) {
+                    var ri = routingInst.split(":");
+                    routingInst = ctwu.formatCurrentFQName(ri,
+                            ctwu.getCurrentDomainProject());
+                    mirror += this.addTableRow("Routing Instance", routingInst);
+                } else {
+                    mirror += this.addTableRow("Routing Instance", "-");
+                }
+
+                if(mirrorDirection) {
+                    var dir = "Both";
+                    if(mirrorDirection  === "ingress") {
+                        dir = "Ingress";
+                    } else if(mirrorDirection  === "egress") {
+                        dir = "Egress";
+                    }
+                    mirror += this.addTableRow("Traffic Direction", dir);
+                } else {
+                    mirror += this.addTableRow("Traffic Direction", "-");
+                }
+
+                if(nhMode) {
+                    var mode = "Dynamic";
+                    if(nhMode === ctwc.MIRROR_STATIC) {
+                        mode = "Static"
+                    }
+                    mirror += this.addTableRow("Nexthop Mode", mode);
+                } else {
+                    mirror += this.addTableRow("Nexthop Mode", "-");
+                }
+
+                if(nhMode === ctwc.MIRROR_STATIC) {
+                    vtepDestIP = getValueByJsonPath(dc,
+                            "action_list;" +
+                            "mirror_to;static_nh_header;" +
+                            "vtep_dst_ip_address", null);
+                    vtepDestMAC = getValueByJsonPath(dc,
+                            "action_list;" +
+                            "mirror_to;static_nh_header;" +
+                            "vtep_dst_mac_address", null);
+                    VxLANId = getValueByJsonPath(dc,
+                            "action_list;" +
+                            "mirror_to;static_nh_header;" +
+                            "vni", null);
+                    if(vtepDestIP) {
+                        mirror += this.addTableRow("VTEP Dest IP", vtepDestIP);
+                    } else {
+                        mirror += this.addTableRow("VTEP Dest IP", "-");
+                    }
+                    if(vtepDestMAC) {
+                        mirror += this.addTableRow("VTEP Dest MAC", vtepDestMAC);
+                    } else {
+                        mirror += this.addTableRow("VTEP Dest MAC", "-");
+                    }
+                    if(VxLANId) {
+                        mirror += this.addTableRow("VxLAN ID", VxLANId);
+                    } else {
+                        mirror += this.addTableRow("VxLAN ID", "-");
+                    }
+                }
+
+                if (mirror == "") {
+                    mirror = "-";
+                } else {
+                    mirror = "<table style='width:100%'><tbody>" + mirror + "</tbody></table>";
+                }
+                return mirror;
+            };
+
+            this.addTableRow = function(key, value) {
+                var formattedStr = "<tr>";
+                formattedStr += "<td style='width:25%'>" + key + "</td>";
+                formattedStr += "<td style='font-weight:bold'>" + value + "</td>";
+                formattedStr += "</tr>";
+                return formattedStr;
+            };
      };
      return fwRuleFormatter
  });

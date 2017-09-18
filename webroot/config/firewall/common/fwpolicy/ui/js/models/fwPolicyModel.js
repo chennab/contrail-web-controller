@@ -432,6 +432,88 @@ define([
                     }
                     newFWRuleData['action_list'] = {};
                     newFWRuleData['action_list']['simple_action'] = attr['simple_action'];
+                    //mirroring
+                    if(attr.mirror_to_check === true) {
+                        var mirroringOptns =
+                            attr.user_created_mirroring_optns,
+                            udpPort, routingInstance, jnprHeader, nhMode,
+                            nicAssistedVlan,
+                            analyzerName = getValueByJsonPath(newFWRuleData,
+                                "action_list;mirror_to;analyzer_name",
+                                null);
+                        if(mirroringOptns === ctwc.ANALYZER_INSTANCE){
+                            newFWRuleData["action_list"]["mirror_to"] = {};
+                            newFWRuleData["action_list"]["mirror_to"]
+                            ["analyzer_name"] = analyzerName;
+                        } else if(mirroringOptns === ctwc.NIC_ASSISTED) {
+                            nicAssistedVlan = getValueByJsonPath(newFWRuleData,
+                                    "action_list;mirror_to;nic_assisted_mirroring_vlan",
+                                    null);
+                            newFWRuleData["action_list"]["mirror_to"] = {};
+                            newFWRuleData["action_list"]["mirror_to"]
+                                ["analyzer_name"] =
+                                    attr.user_created_analyzer_name;
+                            newFWRuleData["action_list"]["mirror_to"]
+                                ["nic_assisted_mirroring"] = true;
+                            newFWRuleData["action_list"]["mirror_to"]
+                                ["nic_assisted_mirroring_vlan"] =
+                                    Number(nicAssistedVlan);
+                        } else {
+                            newFWRuleData["action_list"]["mirror_to"] = {};
+                            newFWRuleData["action_list"]["mirror_to"]
+                            ["analyzer_name"] =
+                                attr.user_created_analyzer_name;
+                            newFWRuleData["action_list"]["mirror_to"]["analyzer_ip_address"] =
+                                attr["action_list"]["mirror_to"]["analyzer_ip_address"];
+                            newFWRuleData["action_list"]["mirror_to"]["analyzer_mac_address"] =
+                                attr["action_list"]["mirror_to"]["analyzer_mac_address"];
+                            udpPort = getValueByJsonPath(attr,
+                                    "action_list;mirror_to;udp_port", null, false);
+                            jnprHeader = attr.user_created_juniper_header;
+                            nhMode = attr.mirrorToNHMode;
+                            if(udpPort) {
+                                newFWRuleData["action_list"]["mirror_to"]["udp_port"] =
+                                        Number(udpPort);
+                            }
+                            newFWRuleData["action_list"]["mirror_to"]["nh_mode"] =
+                                nhMode;
+                            if(nhMode === ctwc.MIRROR_DYNAMIC) {
+                                newFWRuleData["action_list"]
+                                    ["mirror_to"]["static_nh_header"] = null;
+                            } else {
+                                var vni = getValueByJsonPath(attr,
+                                        "action_list;" +
+                                        "mirror_to;static_nh_header;vni", null, false);
+                                newFWRuleData["action_list"]
+                                ["mirror_to"]["static_nh_header"] = {};
+                                if(vni) {
+                                    newFWRuleData["action_list"]
+                                    ["mirror_to"]["static_nh_header"]["vni"] =
+                                        Number(vni);
+                                }
+                                newFWRuleData["action_list"]["mirror_to"]["static_nh_header"]["vtep_dst_ip_address"] =
+                                    attr["action_list"]["mirror_to"]["static_nh_header"]["vtep_dst_ip_address"];
+                                newFWRuleData["action_list"]["mirror_to"]["static_nh_header"]["vtep_dst_mac_address"] =
+                                    attr["action_list"]["mirror_to"]["static_nh_header"]["vtep_dst_mac_address"];
+                            }
+                            if(jnprHeader === 'enabled') {
+                                newFWRuleData["action_list"]
+                                ["mirror_to"]["juniper_header"] = true;
+                                delete newFWRuleData["action_list"]
+                                     ["mirror_to"]["routing_instance"];
+                            } else {
+                                newFWRuleData["action_list"]
+                                ["mirror_to"]["juniper_header"] = false;
+                                routingInstance = attr.mirrorToRoutingInstance;
+                                if(routingInstance) {
+                                    newFWRuleData["action_list"]
+                                        ["mirror_to"]["routing_instance"] = routingInstance;
+                                }
+                            }
+                        }
+                    } else {
+                        newFWRuleData["action_list"]["mirror_to"] = null;
+                    }
                     newFWRuleData['direction'] = attr['direction'];
                     //newFWRuleData['sequence'] = attr['sequence'];
                     newFWRuleData['match_tags'] = {};
