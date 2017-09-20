@@ -78,7 +78,7 @@
     border: 1px solid #dadada;
     top:0px;
 }
-#PolicyRules .radio-group {
+#PolicyRules .radio-group, #firewall_rules .radio-group {
     padding-left: 83px;
     padding-bottom: 10px;
 }
