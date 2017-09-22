@@ -49,7 +49,9 @@ define([
                             if(!$._data($('#Session_Endpoint input')[0], 'events')) {
                                 self.subscribeModelChangeEvents(self.model, ctwl.EDIT_ACTION);
                                 Knockback.applyBindings(self.model,
-                                    document.getElementById('traffic-groups-radial-chart'));
+                                    document.getElementById('Session_Endpoint'));
+                                Knockback.applyBindings(self.model,
+                                    document.getElementById('TG_Sessions_View'));
                                 kbValidation.bind(self);
                             }
                         } else {
@@ -183,7 +185,7 @@ define([
                             elementId: 'Session_Endpoint',
                             view: "FormRadioButtonView",
                             viewConfig: {
-                                label: 'Select End point',
+                                label: 'Select Endpoint',
                                 class: 'col-xs-12 iconFontStyle margin-10-0-0',
                                 templateId: cowc.TMPL_RADIO_BUTTON_VIEW,
                                 path: 'Session_Endpoint',

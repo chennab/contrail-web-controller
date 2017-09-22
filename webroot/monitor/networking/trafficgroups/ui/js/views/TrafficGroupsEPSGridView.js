@@ -155,7 +155,7 @@ define([
                                text: 'Loading endpoint stats..',
                             },
                             empty: {
-                               text: 'No endpoint stats Found.'
+                               text: ctwl.TRAFFIC_GROUPS_NO_DATA
                             }
                          }
                     },
@@ -364,7 +364,7 @@ define([
                             onClick : function(e, d) {
                                 data.level++;
                                 var value = $(e.target).html().split('('),
-                                    protocol = value[0].trim(),
+                                    protocol = cowf.format.protocolCode(value[0].trim()),
                                     port = value[1].replace(')', '').trim();
                                 data.where.push([{
                                     "suffix": null, "value2": null, "name": "protocol", "value": protocol, "op": 1
@@ -474,7 +474,8 @@ define([
                         autoRefresh: false,
                         checkboxSelectable: false,
                         detail: {
-                            template: cowu.generateDetailTemplateHTML(this.getCurrentSessionDetailsTemplateConfig(data), cowc.APP_CONTRAIL_CONTROLLER)
+                            template: cowu.generateDetailTemplateHTML(this.getCurrentSessionDetailsTemplateConfig(data), cowc.APP_CONTRAIL_CONTROLLER),
+                            noCache: true
                         }
                     },
                     dataSource : {data: []},
@@ -483,7 +484,7 @@ define([
                            text: 'Loading endpoint stats..',
                         },
                         empty: {
-                           text: 'No endpoint stats Found.'
+                           text: ctwl.TRAFFIC_GROUPS_NO_DATA
                         }
                      }
                 },
@@ -678,7 +679,7 @@ define([
        return formatVN(dc['remote_vn']);
     }
     this.protocolPortFormatter = function(v, dc) {
-       return dc['protocol'] + " (" + dc['server_port'] + ")";
+       return cowf.format.protocol(dc['protocol']) + " (" + dc['server_port'] + ")";
     }
     this.policyRuleFormatter = function(v, dc) {
        return dc['security_policy_rule'];

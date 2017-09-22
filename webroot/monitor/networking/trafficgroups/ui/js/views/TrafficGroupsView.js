@@ -316,12 +316,12 @@ define(
                                                ribbon.selected = false;
                                                ribbon.active = false;
                                             });
-                                        if(!self.enableSessionDrilldown) {
-                                            $('#traffic-groups-radial-chart')
-                                                    .removeClass('showLinkInfo');
-                                            $('#traffic-groups-link-info').html('');
-                                        }
-                                        self.chartInfo.component._render();
+                                            if(!self.enableSessionDrilldown) {
+                                                $('#traffic-groups-radial-chart')
+                                                        .removeClass('showLinkInfo');
+                                                $('#traffic-groups-link-info').html('');
+                                                self.chartInfo.component._render();
+                                            }
                                         }
                                     });
                                     return ruleDetails;
@@ -333,7 +333,7 @@ define(
                 },
                 showEndPointStatsInGrid: function () {
                     var self = this,
-                        data = self.excludeUntaggedEndpoints(self.filterdData);
+                        data = self.handleUntaggedEndpoints(self.filterdData);
                     $('#traffic-groups-link-info').html('');
                     $('.tgChartLegend, .tgCirclesLegend').hide();
                     self.renderView4Config($('#traffic-groups-grid-view'), null, {
@@ -344,7 +344,7 @@ define(
                         app: cowc.APP_CONTRAIL_CONTROLLER,
                         viewConfig: {
                             data: data,
-                            title: 'End Point Statistics',
+                            title: 'Endpoint Statistics',
                             elementId: 'traffic-groups-grid-view'
                         }
                     })
@@ -655,7 +655,7 @@ define(
                         var self = this;
                         var data = self.filterdData ? JSON.parse(JSON.stringify(self.filterdData))
                                  : self.viewInst.model.getItems(),
-                            data = self.excludeUntaggedEndpoints(data);
+                            data = self.handleUntaggedEndpoints(data);
                         if(data && data.length == 0) {
                             $('#traffic-groups-radial-chart').empty();
                             var noData = "<h4 class='noStatsMsg'>"
@@ -665,10 +665,11 @@ define(
                             self.viewInst.render(data, self.chartInfo.chartView);
                             $('.tgChartLegend, .tgCirclesLegend').show();
                         }
+                        $('.tgChartLegend, .tgCirclesLegend').show();
                     } else {
                         this.showEndPointStatsInGrid();
                     }
-                    this.updateCirclelegends();
+                    this.updateCircleLegends();
                     if(this.filterdData.length) {
                         $('#traffic-groups-legend-info').removeClass('hidden');
                     } else {
@@ -676,17 +677,17 @@ define(
                     }
                     $('#traffic-groups-options').removeClass('hidden');
                 },
-                excludeUntaggedEndpoints: function (data) {
+                handleUntaggedEndpoints: function (data) {
                     var curSettings = localStorage
                         .getItem('container_' + layoutHandler.getURLHashObj().p
                                    + '_settings'),
-                        excludeUntagged = true,
+                        showUntagged = true,
                         tgData = data ? data.slice(0) : data;
                     if(curSettings) {
                         curSettings = JSON.parse(curSettings);
-                        excludeUntagged = curSettings.excludeUntaggedEndpoints;
+                        showUntagged = curSettings.untaggedEndpoints;
                     }
-                    if(excludeUntagged && tgData) {
+                    if(!showUntagged && tgData) {
                         tgData = _.filter(tgData, function(session) {
                             var remoteVN = session['eps.traffic.remote_vn'];
                             var srcTags = false,
@@ -877,7 +878,7 @@ define(
                                                     .get('subGroupByTagType');
 
                     tgView.filterDataByEndpoints();
-                    tgView.updateCirclelegends();
+                    tgView.updateCircleLegends();
                     var newTimeRange = tgView.getTGSettings().time_range,
                         newFromTime = tgView.getTGSettings().from_time,
                         newToTime = tgView.getTGSettings().to_time;
@@ -889,7 +890,7 @@ define(
                         tgView.updateContainerSettings('', false);
                     }
                 },
-                updateCirclelegends: function() {
+                updateCircleLegends: function() {
                     var trafficChartLegendTmpl =
                         contrail.getTemplate4Id('traffic-chart-legend-template'),
                         outerLegends = [],
@@ -1119,7 +1120,7 @@ define(
                                 : $('#traffic-groups-legend-info').hide();
                         }
                         if(typeof newObj.view_type != 'undefined' ||
-                         typeof newObj.excludeUntaggedEndpoints != 'undefined'
+                         typeof newObj.untaggedEndpoints != 'undefined'
                          || typeof newObj.showInnerCircle != 'undefined' || !newObj) {
                             if(curSettings.view_type == 'grid-stats') {
                                 $('#traffic-groups-radial-chart').hide();
@@ -1197,12 +1198,12 @@ define(
                                 }]
                             }, {
                                 columns: [{
-                                    elementId: 'excludeUntaggedEndpoints',
+                                    elementId: 'untaggedEndpoints',
                                     view: 'FormCheckboxView',
                                     viewConfig: {
-                                        label: 'Exclude Untagged Endpoints',
-                                        path: 'excludeUntaggedEndpoints',
-                                        dataBindValue: 'excludeUntaggedEndpoints',
+                                        label: 'Untagged Endpoints',
+                                        path: 'untaggedEndpoints',
+                                        dataBindValue: 'untaggedEndpoints',
                                         templateId: cowc.TMPL_CHECKBOX_LABEL_RIGHT_VIEW,
                                         class: 'showicon col-xs-12'
                                     }
