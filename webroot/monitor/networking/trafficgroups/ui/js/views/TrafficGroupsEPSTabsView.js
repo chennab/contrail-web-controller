@@ -4,20 +4,40 @@
 
 define([
     'lodash',
+    'knockback',
     'contrail-view',
     'contrail-list-model',
-], function (_, ContrailView, ContrailListModel) {
+    'contrail-model'
+], function (_, Knockback, ContrailView, ContrailListModel, ContrailModel) {
     var TrafficGroupsSessionsView = ContrailView.extend({
         el: $(contentContainer),
         render: function (sessionData, containerEle) {
             var self = this;
             this.sessionData = sessionData;
             if(containerEle) {
+                if(!self.model) {
+                    self.model = new (ContrailModel.extend({
+                        defaultConfig: {
+                            'group_by_columns' : null,
+                            'Session_Endpoint' : 'endpoint1'
+                        },
+                        onEndpointChanged: function(newVal) {
+                            sessionData.selectedEndpoint = newVal;
+                            self.sessionDrilldown(sessionData);
+                            self.renderBreadcrumb();
+                        },
+                        onGroupByChanged: function(newVal) {
+                            sessionData.groupBy = newVal;
+                            self.sessionDrilldown(sessionData);
+                            self.renderBreadcrumb();
+                        }
+                    }))();
+                }
                 if($('#TG_Sessions_View').length) {
                     containerEle = $("#TG_Sessions_View");
                     containerEle.empty();
                 }
-                this.renderView4Config(containerEle, null,
+                this.renderView4Config(containerEle, self.model,
                     this.getSessionsTabViewConfig(sessionData.endpointNames), null, null, null,
                     function() {
                         self.renderBreadcrumb();
@@ -26,15 +46,11 @@ define([
                             sessionData.sessionType = $('#Client_Sessions-tab-link')
                                 .parent().hasClass('ui-tabs-active')
                                                        ? 'client' : 'server';
-                            $('#Session_Endpoint input[value=' + sessionData.selectedEndpoint + ']')
-                                                        .prop('checked', true);
                             if(!$._data($('#Session_Endpoint input')[0], 'events')) {
-                                $('#Session_Endpoint input').on('change', function(e) {
-                                    sessionData.selectedEndpoint =
-                                            $('#Session_Endpoint input:checked').val();
-                                    self.sessionDrilldown(sessionData);
-                                    self.renderBreadcrumb();
-                                });
+                                self.subscribeModelChangeEvents(self.model, ctwl.EDIT_ACTION);
+                                Knockback.applyBindings(self.model,
+                                    document.getElementById('traffic-groups-radial-chart'));
+                                kbValidation.bind(self);
                             }
                         } else {
                             $('#Session_Endpoint').hide();
@@ -62,6 +78,18 @@ define([
                                          self.getEndpointsTabsViewConfig());
             });
             }
+        },
+        subscribeModelChangeEvents: function(sessionModel) {
+            sessionModel.__kb.view_model.model().on('change:Session_Endpoint',
+                function(model, newValue){
+                    sessionModel.onEndpointChanged(newValue);
+                }
+            );
+            sessionModel.__kb.view_model.model().on('change:group_by_columns',
+                function(model, newValue){
+                    sessionModel.onGroupByChanged(newValue);
+                }
+            );
         },
         getEndpointStatsTabs: function() {
             return {
@@ -130,7 +158,8 @@ define([
                     viewPathPrefix: "monitor/networking/trafficgroups/ui/js/views/",
                     viewConfig: {
                         data: endpoint,
-                        tabid: title + "_Sessions"
+                        tabid: title + "_Sessions",
+                        configTye: 'sessions'
                     },
                     tabConfig: {
                        activate: function(event, ui) {
@@ -157,6 +186,8 @@ define([
                                 label: 'Select End point',
                                 class: 'col-xs-12 iconFontStyle margin-10-0-0',
                                 templateId: cowc.TMPL_RADIO_BUTTON_VIEW,
+                                path: 'Session_Endpoint',
+                                dataBindValue: 'Session_Endpoint',
                                 elementConfig: {
                                     dataObj: [
                                         {value: 'endpoint1', label: names[0]},
@@ -165,7 +196,29 @@ define([
                                 }
                             }
                         }],
-                    }, {
+                    }, /*{
+                        columns: [{
+                            elementId: 'group_by_columns',
+                            view: 'FormDropdownView',
+                            viewConfig: {
+                                label: 'Group By',
+                                class: 'col-xs-6',
+                                path: 'group_by_columns',
+                                dataBindValue: 'group_by_columns',
+                                elementConfig: {
+                                    defaultValue: 'Protocol (Server Port)',
+                                    defaultValueId: 0,
+                                    data:[{
+                                        id:'protocol',
+                                        text:'Protocol (Server Port)'
+                                    },{
+                                        id:'policy',
+                                        text:'Policy (Rule)'
+                                    }]
+                                }
+                            }
+                        }]
+                    }, */{
                         columns: [{
                             elementId: 'TG_Sessions_View',
                             view: "SectionView",
@@ -198,17 +251,19 @@ define([
                         }]
                     });
                   } else {
-                    var title = this.sessionData.sessionType;
+                    var type = (this.sessionData.sessionType == 'client') ?
+                                        'Client' : 'Server';
                     configRows.push({
                         columns: [{
-                            elementId: title + "_Sessions",
-                            title: title + ' Sessions',
+                            elementId: type + "_Sessions",
                             view: "TrafficGroupsEPSGridView",
                             app: cowc.APP_CONTRAIL_CONTROLLER,
                             viewPathPrefix: "monitor/networking/trafficgroups/ui/js/views/",
                             viewConfig: {
                                 data: this.curSessionData,
-                                tabid: title + "_Sessions"
+                                tabid: type + "_Sessions",
+                                title: type + " Sessions",
+                                configTye: 'sessions'
                             }
                         }]
                     });
@@ -253,7 +308,12 @@ define([
                 self = this,
                 selectFields = ["SUM(forward_sampled_bytes)", "SUM(reverse_sampled_bytes)"];
                 if(sessionData.level == 1) {
-                    selectFields.push("protocol", "server_port");
+                    if(self.model && self.model.model()
+                            .attributes['group_by_columns'] == 'policy') {
+                        selectFields.push("policy", "rule");
+                    } else {
+                        selectFields.push("protocol", "server_port");
+                    }
                 }
                 if(sessionData.level == 2) {
                     selectFields.push("local_ip", "vn");

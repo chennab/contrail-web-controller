@@ -22,7 +22,7 @@ define(
                 showOtherProjectTraffic: false,
                 combineEmptyTags: false,
                 matchArcsColorByCategory: false,
-                enableSessionDrilldown: true,
+                enableSessionDrilldown: false,
                 // Provide colours list for top level arcs
                 topLevelArcColors: cowc['TRAFFIC_GROUP_COLOR_LEVEL1'].slice(0,1),
                 filterdData: null,
@@ -973,9 +973,13 @@ define(
                     if(filterByTags.length) {
                         filterIconEle.removeClass('noFiltersApplied')
                         filterIconEle.attr('data-action', 'clear');
+                        filterIconEle.find('.filterCount').removeClass('hidden')
+                                        .html(filterByTags.length);
                     } else {
                         filterIconEle.addClass('noFiltersApplied');
                         filterIconEle.removeAttr('data-action');
+                        filterIconEle.find('.filterCount').addClass('hidden')
+                                        .html('');
                     }
                     $('.tgRemoveFilter').on('click', this.removeFilter);
                     $('#filterByTagNameSec .dropdown-menu')
@@ -1033,9 +1037,17 @@ define(
                     };
                 },
                 getCategorizationObj: function() {
-                    var categorization = [this.getTGSettings().groupByTagType
-                                            .join('-')];
-                    if(this.getTGSettings().subGroupByTagType) {
+                    var curSettings = localStorage
+                        .getItem('container_' + layoutHandler.getURLHashObj().p
+                                   + '_settings'),
+                        categorization = [this.getTGSettings().groupByTagType
+                                            .join('-')],
+                        showInnerCircle = true;
+                    if(curSettings) {
+                        curSettings = JSON.parse(curSettings);
+                        showInnerCircle = curSettings.showInnerCircle;
+                    }
+                    if(this.getTGSettings().subGroupByTagType && showInnerCircle) {
                         categorization.push(this.getTGSettings()
                                         .subGroupByTagType.join('-'));
                     }
@@ -1108,7 +1120,7 @@ define(
                         }
                         if(typeof newObj.view_type != 'undefined' ||
                          typeof newObj.excludeUntaggedEndpoints != 'undefined'
-                         || !newObj) {
+                         || typeof newObj.showInnerCircle != 'undefined' || !newObj) {
                             if(curSettings.view_type == 'grid-stats') {
                                 $('#traffic-groups-radial-chart').hide();
                                 $('#traffic-groups-grid-view').show();
@@ -1128,10 +1140,6 @@ define(
                                     'levels': curSettings.showInnerCircle ? 2 : 1
                                 });
                             }
-                        }
-                        if(typeof newObj.showInnerCircle != 'undefined'
-                            && curSettings.view_type == 'chart-stats') {
-                            this._onClickNode(curSettings.showInnerCircle);
                         }
                     } else {
                         this.updateChart({

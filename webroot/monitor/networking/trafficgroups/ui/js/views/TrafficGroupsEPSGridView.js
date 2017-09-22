@@ -14,16 +14,17 @@ define([
                 viewConfig = this.attributes.viewConfig,
                 elementId = viewConfig.tabid != null ? viewConfig.tabid : viewConfig.elementId,
                 contrailListModel = new ContrailListModel({data : viewConfig.data}),
-                title = viewConfig['title'];
-           self.renderView4Config($("#"+elementId), contrailListModel, self.getSessionsGridViewConfig(title));
+                title = viewConfig['title'],
+                type = viewConfig['configTye'];
+           self.renderView4Config($("#"+elementId), contrailListModel, self.getSessionsGridViewConfig(type,title));
         },
-        getSessionsGridViewConfig: function (title) {
+        getSessionsGridViewConfig: function (type, title) {
             return {
                 elementId: ctwl.TRAFFIC_GROUPS_ENDPOINT_STATS + '-grid',
                 view: "GridView",
                 viewConfig: {
-                    elementConfig: title ? this.getSessionsConfiguration(title)
-                                            : this.getcurrentSessionConfig()
+                    elementConfig: (type == 'sessions') ? this.getcurrentSessionConfig(title) :
+                                    this.getSessionsConfiguration(title)
                 }
             }
         },
@@ -331,30 +332,51 @@ define([
                 currentLevel = data.level,
                 sessionColumns = [];
             if(currentLevel == 1) {
-                var label = (this.attributes.elementId == 'Client_Sessions') ? '(Destination Port)' : '(Server Port)';
-                sessionColumns.push({
-                    field: 'protocol',
-                    name: 'Protocol ' + label,
-                    cssClass: 'cell-hyperlink-blue',
-                    formatter: function(r,c,v,cd,dc) {
-                        return protocolPortFormatter(v, dc);
-                    },
-                    events : {
-                        onClick : function(e, d) {
-                            data.level++;
-                            var value = $(e.target).html().split('('),
-                                protocol = value[0].trim(),
-                                port = value[1].replace(')', '').trim();
-                            data.where.push([{
-                                "suffix": null, "value2": null, "name": "protocol", "value": protocol, "op": 1
-                            }, {
-                                "suffix": null, "value2": null, "name": "server_port", "value": port, "op": 1
-                            }]);
-                            data.breadcrumb.push(['Protocol: ' + protocol, 'Port: ' + port]);
-                            self.rootView.sessionDrilldown(data);
+                if(data.groupBy == 'policy') {
+                    sessionColumns.push({
+                        field: 'security_policy_rule',
+                        name: 'Policy (Rule)',
+                        cssClass: 'cell-hyperlink-blue',
+                        formatter: function(r,c,v,cd,dc) {
+                            return policyRuleFormatter(v, dc);
+                        },
+                        events : {
+                            onClick : function(e, d) {
+                                data.level++;
+                                var value = $(e.target).html();
+                                data.where.push([{
+                                    "suffix": null, "value2": null, "name": "security_policy_rule", "value": value, "op": 1
+                                }]);
+                                data.breadcrumb.push(['Policy: ' + value]);
+                                self.rootView.sessionDrilldown(data);
+                             }
                          }
-                     }
-                });
+                    });
+                } else {
+                    sessionColumns.push({
+                        field: 'protocol',
+                        name: 'Protocol (Server Port)',
+                        cssClass: 'cell-hyperlink-blue',
+                        formatter: function(r,c,v,cd,dc) {
+                            return protocolPortFormatter(v, dc);
+                        },
+                        events : {
+                            onClick : function(e, d) {
+                                data.level++;
+                                var value = $(e.target).html().split('('),
+                                    protocol = value[0].trim(),
+                                    port = value[1].replace(')', '').trim();
+                                data.where.push([{
+                                    "suffix": null, "value2": null, "name": "protocol", "value": protocol, "op": 1
+                                }, {
+                                    "suffix": null, "value2": null, "name": "server_port", "value": port, "op": 1
+                                }]);
+                                data.breadcrumb.push(['Protocol: ' + protocol, 'Port: ' + port]);
+                                self.rootView.sessionDrilldown(data);
+                             }
+                         }
+                    });
+                }
             }
             if(currentLevel == 2) {
                 var label = (data.sessionType == 'client') ? 'Client IP' : 'Server IP';
@@ -481,16 +503,25 @@ define([
             var currentLevel = data.level,
                 templateConfig = [];
             if(currentLevel == 1) {
-                var label = (this.attributes.elementId == 'Client_Sessions')
-                                        ? '(Destination Port)' : '(Server Port)';
-                templateConfig.push({
-                    key: 'protocol',
-                    label: 'protocol ' + label,
-                    templateGenerator: 'TextGenerator',
-                    templateGeneratorConfig: {
-                        formatter: 'protocolPortFormatter'
-                    }
-                });
+                if(data.groupBy == 'policy') {
+                    templateConfig.push({
+                        key: 'security_policy_rule',
+                        label: 'Policy (Rule)',
+                        templateGenerator: 'TextGenerator',
+                        templateGeneratorConfig: {
+                            formatter: 'policyRuleFormatter'
+                        }
+                    });
+                } else {
+                    templateConfig.push({
+                        key: 'protocol',
+                        label: 'protocol (Server Port)',
+                        templateGenerator: 'TextGenerator',
+                        templateGeneratorConfig: {
+                            formatter: 'protocolPortFormatter'
+                        }
+                    });
+                }
             }
             if(currentLevel == 2) {
                 var label = (data.sessionType == 'client') ? 'Client IP' : 'Server IP';
@@ -646,9 +677,11 @@ define([
     this.remoteVNFormatter = function(v, dc) {
        return formatVN(dc['remote_vn']);
     }
-
     this.protocolPortFormatter = function(v, dc) {
        return dc['protocol'] + " (" + dc['server_port'] + ")";
+    }
+    this.policyRuleFormatter = function(v, dc) {
+       return dc['security_policy_rule'];
     }
     this.sessionsInFormatter = function(v, dc) {
        return this.epsDefaultValueFormatter(
