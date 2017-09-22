@@ -13,22 +13,31 @@ define([
             var self = this;
             this.sessionData = sessionData;
             if(containerEle) {
+                if($('#TG_Sessions_View').length) {
+                    containerEle = $("#TG_Sessions_View");
+                    containerEle.empty();
+                }
                 this.renderView4Config(containerEle, null,
                     this.getSessionsTabViewConfig(sessionData.endpointNames), null, null, null,
                     function() {
                         self.renderBreadcrumb();
                         if(sessionData.level == 1) {
+                            $('#Session_Endpoint').show();
                             sessionData.sessionType = $('#Client_Sessions-tab-link')
                                 .parent().hasClass('ui-tabs-active')
                                                        ? 'client' : 'server';
-                            $('#Session_Endpoint input[value=' + sessionData.selectedEndpoint+']')
+                            $('#Session_Endpoint input[value=' + sessionData.selectedEndpoint + ']')
                                                         .prop('checked', true);
-                            $('#Session_Endpoint input').on('change', function(e) {
-                                sessionData.selectedEndpoint =
-                                        $('#Session_Endpoint input:checked').val();
-                                self.sessionDrilldown(sessionData);
-                                self.renderBreadcrumb();
-                            });
+                            if(!$._data($('#Session_Endpoint input')[0], 'events')) {
+                                $('#Session_Endpoint input').on('change', function(e) {
+                                    sessionData.selectedEndpoint =
+                                            $('#Session_Endpoint input:checked').val();
+                                    self.sessionDrilldown(sessionData);
+                                    self.renderBreadcrumb();
+                                });
+                            }
+                        } else {
+                            $('#Session_Endpoint').hide();
                         }
                     });
             } else {
@@ -110,7 +119,7 @@ define([
         getSessionTabConfig: function() {
             var self = this,
                 tabConfig = [],
-                sessionData = this.sessionData
+                sessionData = this.sessionData;
             _.each(sessionData.endpointStats, function(endpoint, idx) {
                 var title = (idx == 0) ? 'Client' : 'Server';
                 tabConfig.push({
@@ -138,12 +147,9 @@ define([
             return tabConfig;
         },
         getSessionsTabViewConfig: function (names) {
-            return {
-                elementId: cowu.formatElementId([ctwl.TRAFFIC_GROUPS_SESSION_STATS + '-list']),
-                view: "SectionView",
-                viewConfig: {
-                    rows: [
-                    {
+                var configRows = [];
+                if(!$('#TG_Sessions_View').length) {
+                    configRows.push({
                         columns:[{
                             elementId: 'Session_Endpoint',
                             view: "FormRadioButtonView",
@@ -159,8 +165,28 @@ define([
                                 }
                             }
                         }],
-                    },
-                    {
+                    }, {
+                        columns: [{
+                            elementId: 'TG_Sessions_View',
+                            view: "SectionView",
+                            viewConfig: {
+                                rows: [
+                                {
+                                    columns:[{
+                                        elementId: ctwl.TRAFFIC_GROUPS_SESSION_STATS + '-tabs',
+                                        view: 'TabsView',
+                                        viewConfig: {
+                                            theme: 'default',
+                                            active: 0,
+                                            tabs: this.getSessionTabConfig()
+                                        }
+                                    }]
+                                 }]
+                            }
+                        }]
+                    });
+                }  else if(this.sessionData.level == 1) {
+                    configRows.push({
                         columns: [{
                             elementId: ctwl.TRAFFIC_GROUPS_SESSION_STATS + '-tabs',
                             view: 'TabsView',
@@ -170,9 +196,30 @@ define([
                                 tabs: this.getSessionTabConfig()
                             }
                         }]
-                    }]
+                    });
+                  } else {
+                    var title = this.sessionData.sessionType;
+                    configRows.push({
+                        columns: [{
+                            elementId: title + "_Sessions",
+                            title: title + ' Sessions',
+                            view: "TrafficGroupsEPSGridView",
+                            app: cowc.APP_CONTRAIL_CONTROLLER,
+                            viewPathPrefix: "monitor/networking/trafficgroups/ui/js/views/",
+                            viewConfig: {
+                                data: this.curSessionData,
+                                tabid: title + "_Sessions"
+                            }
+                        }]
+                    });
+                  }
+                return {
+                    elementId: cowu.formatElementId([ctwl.TRAFFIC_GROUPS_SESSION_STATS + '-list']),
+                    view: "SectionView",
+                    viewConfig: {
+                        rows: configRows
+                    }
                 }
-            }
         },
         renderBreadcrumb: function() {
             $('#TGsessionsBreadcrumb').remove();
@@ -201,9 +248,9 @@ define([
             });
         },
         sessionDrilldown: function(sessionData) {
-            var sessionData = this.sessionData;
-            $('#traffic-groups-radial-chart').html('');
-            var self = this,
+            $('.tgChartLegend, .tgCirclesLegend').hide();
+            var sessionData = this.sessionData,
+                self = this,
                 selectFields = ["SUM(forward_sampled_bytes)", "SUM(reverse_sampled_bytes)"];
                 if(sessionData.level == 1) {
                     selectFields.push("protocol", "server_port");
@@ -217,7 +264,7 @@ define([
             var whereClause = [],
                 whereTags = sessionData.tags.slice(0);
             if(sessionData.selectedEndpoint == 'endpoint2') {
-                whereClause = whereTags.reverse();
+                whereTags = whereTags.reverse();
             }
             _.each(whereTags[0], function(tag) {
                 whereClause.push({

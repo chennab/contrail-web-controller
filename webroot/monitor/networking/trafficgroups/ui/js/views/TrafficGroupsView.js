@@ -289,23 +289,24 @@ define(
                                     data.srcId = srcId;
                                     data.dstId = dstId;
                                     data.policyRules = formattedRuleDetails;
-                                    if (formattedRuleDetails.length) {
-                                        var ruleDetailsTemplate = contrail.getTemplate4Id('traffic-rule-template');
-                                        $('#traffic-groups-link-info').html(ruleDetailsTemplate(data));
-                                        $('.allSessionInfo').on('click', self.showSessionsInfo);
-                                        $('#traffic-groups-radial-chart')
-                                         .on('click', function(ev) {
-                                            if($(ev.target)
-                                                .parents('#'+self.chartInfo.component.id).length == 0) {
-                                                _.each(self.chartInfo.component.ribbons,
-                                                 function (ribbon) {
-                                                   ribbon.selected = false;
-                                                   ribbon.active = false;
-                                                });
-                                                self.chartInfo.component._render();
-                                            }
-                                        });
+                                    if(!formattedRuleDetails.length) {
+                                        data.rules = ruleUUIDs;
                                     }
+                                    var ruleDetailsTemplate = contrail.getTemplate4Id('traffic-rule-template');
+                                    $('#traffic-groups-link-info').html(ruleDetailsTemplate(data));
+                                    $('.allSessionInfo').on('click', self.showSessionsInfo);
+                                    $('#traffic-groups-radial-chart')
+                                     .on('click', function(ev) {
+                                        if($(ev.target)
+                                            .parents('#'+self.chartInfo.component.id).length == 0) {
+                                            _.each(self.chartInfo.component.ribbons,
+                                             function (ribbon) {
+                                               ribbon.selected = false;
+                                               ribbon.active = false;
+                                            });
+                                            self.chartInfo.component._render();
+                                        }
+                                    });
                                     return ruleDetails;
                                 }
                             }
@@ -316,6 +317,7 @@ define(
                 showEndPointStatsInGrid: function () {
                     var self = this;
                     $('#traffic-groups-link-info').html('');
+                    $('.tgChartLegend, .tgCirclesLegend').hide();
                     self.renderView4Config($('#traffic-groups-grid-view'), null, {
                         elementId: 'traffic-groups-grid-view',
                         view: "TrafficGroupsEPSGridView",
@@ -642,10 +644,12 @@ define(
                             $('#traffic-groups-radial-chart').html(noData);
                         } else {
                             self.viewInst.render(data, self.chartInfo.chartView);
+                            $('.tgChartLegend, .tgCirclesLegend').show();
                         }
                     } else {
                         this.showEndPointStatsInGrid();
                     }
+                    this.updateCirclelegends();
                     if(this.filterdData.length) {
                         $('#traffic-groups-legend-info').removeClass('hidden');
                     } else {
@@ -824,6 +828,7 @@ define(
                                                     .get('subGroupByTagType');
 
                     tgView.filterDataByEndpoints();
+                    tgView.updateCirclelegends();
                     var newTimeRange = tgView.getTGSettings().time_range,
                         newFromTime = tgView.getTGSettings().from_time,
                         newToTime = tgView.getTGSettings().to_time;
@@ -834,6 +839,32 @@ define(
                     } else {
                         tgView.updateContainerSettings('', false);
                     }
+                },
+                updateCirclelegends: function() {
+                    var trafficChartLegendTmpl =
+                        contrail.getTemplate4Id('traffic-chart-legend-template'),
+                        outerLegends = [],
+                        innerLegends = [];
+                    _.map(this.getCategorizationObj()[0].split('-'), function(tag) {
+                        outerLegends.push(_.find(cowc.TRAFFIC_GROUP_TAG_TYPES,
+                            function(obj) {
+                            return obj.value == tag
+                        }).text);
+                    });
+                    if(this.getCategorizationObj()[1]) {
+                        _.map(this.getCategorizationObj()[1].split('-'), function(tag) {
+                            innerLegends.push(_.find(cowc.TRAFFIC_GROUP_TAG_TYPES,
+                                function(obj) {
+                                return obj.value == tag
+                            }).text);
+                        });
+                    }
+                    $('#traffic-groups-legend-info .tgCirclesLegend').html(
+                        trafficChartLegendTmpl({
+                            outerTags: outerLegends,
+                            innerTags: innerLegends.length ? innerLegends : ['-']
+                        })
+                    );
                 },
                 removeFilter: function(e) {
                     var curElem = $(e.currentTarget).parent('li').find('div'),

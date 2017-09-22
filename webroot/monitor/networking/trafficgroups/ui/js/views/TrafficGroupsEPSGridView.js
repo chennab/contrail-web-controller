@@ -15,10 +15,6 @@ define([
                 elementId = viewConfig.tabid != null ? viewConfig.tabid : viewConfig.elementId,
                 contrailListModel = new ContrailListModel({data : viewConfig.data}),
                 title = viewConfig['title'];
-            if(this.rootView.sessionData.level > 1) {
-                elementId = "traffic-groups-radial-chart";
-                contrailListModel = new ContrailListModel({data : this.rootView.curSessionData})
-            }
            self.renderView4Config($("#"+elementId), contrailListModel, self.getSessionsGridViewConfig(title));
         },
         getSessionsGridViewConfig: function (title) {
@@ -354,7 +350,7 @@ define([
                             }, {
                                 "suffix": null, "value2": null, "name": "server_port", "value": port, "op": 1
                             }]);
-                            data.breadcrumb.push(['Protocol:' + protocol, 'Port:' + port]);
+                            data.breadcrumb.push(['Protocol: ' + protocol, 'Port: ' + port]);
                             self.rootView.sessionDrilldown(data);
                          }
                      }
@@ -372,13 +368,14 @@ define([
                             var vnValue = $(e.target).parent().find('.vn_field').html().split('('),
                                 currentVN = vnValue[0].trim(),
                                 project = vnValue[1].replace(')', '').trim(),
-                                vnName = contrail.getCookie(cowc.COOKIE_DOMAIN) + ":" + project + ":" + currentVN;
+                                vnName = contrail.getCookie(cowc.COOKIE_DOMAIN) + ":" + project + ":" + currentVN,
+                                name = (data.sessionType == 'client') ? 'Client IP' : 'Server IP';
                             data.where.push([{
                                 "suffix": null, "value2": null, "name": 'local_ip', "value": $(e.target).html(), "op": 1
                             }, {
                                 "suffix": null, "value2": null, "name": 'vn', "value": vnName, "op": 1
                             }]);
-                            data.breadcrumb.push(['label:' + $(e.target).html()]);
+                            data.breadcrumb.push([name + ': ' + $(e.target).html()]);
                             self.rootView.sessionDrilldown(data);
                          }
                      }
