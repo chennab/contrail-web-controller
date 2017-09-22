@@ -22,6 +22,7 @@ define(
                 showOtherProjectTraffic: false,
                 combineEmptyTags: false,
                 matchArcsColorByCategory: false,
+                enableSessionDrilldown: true,
                 // Provide colours list for top level arcs
                 topLevelArcColors: cowc['TRAFFIC_GROUP_COLOR_LEVEL1'].slice(0,1),
                 filterdData: null,
@@ -294,6 +295,17 @@ define(
                                     }
                                     var ruleDetailsTemplate = contrail.getTemplate4Id('traffic-rule-template');
                                     $('#traffic-groups-link-info').html(ruleDetailsTemplate(data));
+                                    if(!self.enableSessionDrilldown) {
+                                        if($('#traffic-groups-radial-chart').hasClass('showLinkInfo')) {
+                                           $('.trafficGroups_sidePanel').
+                                                removeClass('animateLinkInfo');
+                                        } else {
+                                            $('.trafficGroups_sidePanel').
+                                                addClass('animateLinkInfo');
+                                            $('#traffic-groups-radial-chart')
+                                            .addClass('showLinkInfo');
+                                        }
+                                    }
                                     $('.allSessionInfo').on('click', self.showSessionsInfo);
                                     $('#traffic-groups-radial-chart')
                                      .on('click', function(ev) {
@@ -304,7 +316,12 @@ define(
                                                ribbon.selected = false;
                                                ribbon.active = false;
                                             });
-                                            self.chartInfo.component._render();
+                                        if(!self.enableSessionDrilldown) {
+                                            $('#traffic-groups-radial-chart')
+                                                    .removeClass('showLinkInfo');
+                                            $('#traffic-groups-link-info').html('');
+                                        }
+                                        self.chartInfo.component._render();
                                         }
                                     });
                                     return ruleDetails;
@@ -315,7 +332,8 @@ define(
                     }
                 },
                 showEndPointStatsInGrid: function () {
-                    var self = this;
+                    var self = this,
+                        data = self.excludeUntaggedEndpoints(self.filterdData);
                     $('#traffic-groups-link-info').html('');
                     $('.tgChartLegend, .tgCirclesLegend').hide();
                     self.renderView4Config($('#traffic-groups-grid-view'), null, {
@@ -325,7 +343,7 @@ define(
                         "monitor/networking/trafficgroups/ui/js/views/",
                         app: cowc.APP_CONTRAIL_CONTROLLER,
                         viewConfig: {
-                            data: self.filterdData,
+                            data: data,
                             title: 'End Point Statistics',
                             elementId: 'traffic-groups-grid-view'
                         }
@@ -636,7 +654,8 @@ define(
                     if($('#traffic-groups-radial-chart:visible').length) {
                         var self = this;
                         var data = self.filterdData ? JSON.parse(JSON.stringify(self.filterdData))
-                                 : self.viewInst.model.getItems();
+                                 : self.viewInst.model.getItems(),
+                            data = self.excludeUntaggedEndpoints(data);
                         if(data && data.length == 0) {
                             $('#traffic-groups-radial-chart').empty();
                             var noData = "<h4 class='noStatsMsg'>"
@@ -656,6 +675,34 @@ define(
                         $('#traffic-groups-legend-info').addClass('hidden');
                     }
                     $('#traffic-groups-options').removeClass('hidden');
+                },
+                excludeUntaggedEndpoints: function (data) {
+                    var curSettings = localStorage
+                        .getItem('container_' + layoutHandler.getURLHashObj().p
+                                   + '_settings'),
+                        excludeUntagged = true,
+                        tgData = data ? data.slice(0) : data;
+                    if(curSettings) {
+                        curSettings = JSON.parse(curSettings);
+                        excludeUntagged = curSettings.excludeUntaggedEndpoints;
+                    }
+                    if(excludeUntagged && tgData) {
+                        tgData = _.filter(tgData, function(session) {
+                            var remoteVN = session['eps.traffic.remote_vn'];
+                            var srcTags = false,
+                                dstTags = false;
+                            _.each(cowc.TRAFFIC_GROUP_TAG_TYPES, function(tag) {
+                                if(session[tag.value]) {
+                                    srcTags = true;
+                                }
+                                if(session['eps.traffic.remote_' + tag.value + '_id']) {
+                                    dstTags = true;
+                                }
+                            });
+                            return srcTags && (dstTags || !remoteVN);
+                        });
+                    }
+                    return tgData;
                 },
                 addtionalEvents: function() {
                     return [{
@@ -703,9 +750,11 @@ define(
                     var chartScope = tgView.chartInfo.component;
                     if(chartScope.config.attributes.showLinkInfo) {
                         tgView.showLinkInfo(d, el, e, chartScope);
-                        $('#traffic-groups-radial-chart')
-                            .addClass('showLinkInfo');
-                        tgView.showLinkSessions();
+                        if(tgView.enableSessionDrilldown) {
+                            $('#traffic-groups-radial-chart')
+                                .addClass('showLinkInfo');
+                            tgView.showLinkSessions();
+                        }
                     }
                 },
                 _onMousemoveLink: function(d, el ,e) {
@@ -1057,7 +1106,9 @@ define(
                                 $('#traffic-groups-legend-info').show()
                                 : $('#traffic-groups-legend-info').hide();
                         }
-                        if(typeof newObj.view_type != 'undefined' || !newObj) {
+                        if(typeof newObj.view_type != 'undefined' ||
+                         typeof newObj.excludeUntaggedEndpoints != 'undefined'
+                         || !newObj) {
                             if(curSettings.view_type == 'grid-stats') {
                                 $('#traffic-groups-radial-chart').hide();
                                 $('#traffic-groups-grid-view').show();
@@ -1134,6 +1185,18 @@ define(
                                         dataBindValue: 'showLegend',
                                         templateId: cowc.TMPL_CHECKBOX_LABEL_RIGHT_VIEW,
                                         class: 'showicon col-xs-6'
+                                    }
+                                }]
+                            }, {
+                                columns: [{
+                                    elementId: 'excludeUntaggedEndpoints',
+                                    view: 'FormCheckboxView',
+                                    viewConfig: {
+                                        label: 'Exclude Untagged Endpoints',
+                                        path: 'excludeUntaggedEndpoints',
+                                        dataBindValue: 'excludeUntaggedEndpoints',
+                                        templateId: cowc.TMPL_CHECKBOX_LABEL_RIGHT_VIEW,
+                                        class: 'showicon col-xs-12'
                                     }
                                 }]
                             }
@@ -1306,7 +1369,6 @@ define(
                 render: function() {
                     var trafficGroupsTmpl = contrail.getTemplate4Id('traffic-groups-template');
                     this.$el.html(trafficGroupsTmpl({widgetTitle:'Traffic Groups'}));
-                    this.$el.addClass('traffic-groups-view');
                     $('.refresh-traffic-stats').on('click', this.resetTrafficStats);
                     $('.settings-traffic-stats').on('click', this.showFilterOptions);
                     TrafficGroupsView.colorMap = {};
