@@ -48,6 +48,40 @@ define(
                         epsTabsView.render(linkData);
                     });
                 },
+                showLinkSessions: function() {
+                    require(['monitor/networking/trafficgroups/ui/js/views/TrafficGroupsEPSTabsView'], function(EPSTabsView) {
+                        var linkInfo = tgView.getLinkInfo(tgView.selectedLinkData),
+                            endpoint1Data = [], endpoint2Data = [],
+                            curSession = linkInfo.links[0].data.dataChildren[0];
+                        _.each(tgView.getCategorizationObj(), function(tags) {
+                            _.each(tags.split('-'), function(tag) {
+                                tag = tag.trim();
+                                endpoint1Data.push({
+                                    'name' : (tag == 'app' ? 'application' : tag),
+                                    'value' : curSession[tag].split('=')[1]
+                                });
+                                endpoint2Data.push({
+                                    'name' : (tag == 'app' ? 'application' : tag),
+                                    'value' : curSession['eps.traffic.remote_' + tag + '_id'].split('=')[1]
+                                });
+                            });
+                        });
+                        var linkData = {
+                                endpointNames: [linkInfo.srcTags, linkInfo.dstTags],
+                                endpointStats: [],
+                                tags: [endpoint1Data, endpoint2Data],
+                                breadcrumb: [['All'], [linkInfo.srcTags,linkInfo.dstTags]],
+                                where: [[], []],
+                                selectedEndpoint: 'endpoint1',
+                                sessionType: 'client',
+                                level : 1
+                            },
+                            epsTabsView = new EPSTabsView();
+                            epsTabsView.parentView = tgView;
+                            epsTabsView.sessionData = linkData;
+                        epsTabsView.sessionDrilldown(linkData);
+                    });
+                },
                 getSessionData: function(childData, endpointData, d) {
                     var sessionData = _.chain(childData)
                     .filter(function (val, idx) {
@@ -207,8 +241,6 @@ define(
                                                 simple_action = 'permit';
                                             }
                                             formattedRuleDetails.push({
-                                                //policy_name: _.result(ruleDetailsObj, 'firewall_policy_back_refs.0.to.3', '-') +':'+
-                                                  //          _.result(ruleDetailsObj, 'display_name'),
                                                 policy_name: policy_name,
                                                 srcId: srcId,
                                                 src_session_initiated: _.result(srcSessionObj, ruleUUID+'.0.session_initiated', 0),
@@ -260,15 +292,6 @@ define(
                                     if (formattedRuleDetails.length) {
                                         var ruleDetailsTemplate = contrail.getTemplate4Id('traffic-rule-template');
                                         $('#traffic-groups-link-info').html(ruleDetailsTemplate(data));
-                                        if($('#traffic-groups-radial-chart').hasClass('showLinkInfo')) {
-                                            $('.trafficGroups_sidePanel').
-                                                removeClass('animateLinkInfo');
-                                        } else {
-                                            $('.trafficGroups_sidePanel').
-                                                addClass('animateLinkInfo');
-                                            $('#traffic-groups-radial-chart')
-                                            .addClass('showLinkInfo');
-                                        }
                                         $('.allSessionInfo').on('click', self.showSessionsInfo);
                                         $('#traffic-groups-radial-chart')
                                          .on('click', function(ev) {
@@ -279,9 +302,6 @@ define(
                                                    ribbon.selected = false;
                                                    ribbon.active = false;
                                                 });
-                                                $('#traffic-groups-radial-chart')
-                                                .removeClass('showLinkInfo');
-                                                $('#traffic-groups-link-info').html('');
                                                 self.chartInfo.component._render();
                                             }
                                         });
@@ -679,6 +699,9 @@ define(
                     var chartScope = tgView.chartInfo.component;
                     if(chartScope.config.attributes.showLinkInfo) {
                         tgView.showLinkInfo(d, el, e, chartScope);
+                        $('#traffic-groups-radial-chart')
+                            .addClass('showLinkInfo');
+                        tgView.showLinkSessions();
                     }
                 },
                 _onMousemoveLink: function(d, el ,e) {
@@ -1086,21 +1109,28 @@ define(
                         ]
                     }
                 },
+                getSelectedTime: function() {
+                    var fromTime = this.getTGSettings().time_range,
+                        toTime = 0;
+                    if(fromTime == -1) {
+                        fromTime = (new Date().getTime() - new Date(
+                                this.getTGSettings().from_time).getTime()),
+                        toTime = (new Date().getTime() - new Date(
+                                this.getTGSettings().to_time).getTime());
+                        fromTime = Math.round(fromTime / (1000 * 60));
+                        toTime = Math.round(toTime / (1000 * 60));
+                    } else {
+                        fromTime /= 60;
+                    }
+                    return {
+                        fromTime : fromTime,
+                        toTime : toTime
+                    }
+                },
                 renderTrafficChart: function(option) {
                     this.resetChartView();
                     var self = this,
-                        fromTime = this.getTGSettings().time_range,
-                        toTime = 0;
-                        if(fromTime == -1) {
-                            fromTime = (new Date().getTime() - new Date(
-                                    this.getTGSettings().from_time).getTime()),
-                            toTime = (new Date().getTime() - new Date(
-                                    this.getTGSettings().to_time).getTime());
-                            fromTime = Math.round(fromTime / (1000 * 60));
-                            toTime = Math.round(toTime / (1000 * 60));
-                        } else {
-                            fromTime /= 60;
-                        }
+                        selctedTime = self.getSelectedTime();
                     self.updateStatsTimeSec();
                     var configTagDefObj = $.ajax({
                         url: 'api/tenants/config/get-config-details',
@@ -1117,8 +1147,8 @@ define(
                     var clientPostData = {
                         "async": false,
                         "formModelAttrs": {
-                            "from_time_utc": "now-" + (fromTime + 'm'),
-                            "to_time_utc": "now-" + (toTime + 'm'),
+                            "from_time_utc": "now-" + (selctedTime.fromTime+ 'm'),
+                            "to_time_utc": "now-" + (selctedTime.toTime + 'm'),
                             "select": "eps.client.remote_app_id, eps.client.remote_tier_id, eps.client.remote_site_id,"+
                                  "eps.client.remote_deployment_id, eps.client.remote_prefix, eps.client.remote_vn, eps.__key,"+
                                  " eps.client.app, eps.client.tier, eps.client.site, eps.client.deployment, eps.client.local_vn, name, SUM(eps.client.in_bytes),"+
@@ -1133,8 +1163,8 @@ define(
                     var serverPostData = {
                         "async": false,
                         "formModelAttrs": {
-                            "from_time_utc": "now-" + (fromTime + 'm'),
-                            "to_time_utc": "now-" + (toTime + 'm'),
+                            "from_time_utc": "now-" + (selctedTime.fromTime + 'm'),
+                            "to_time_utc": "now-" + (selctedTime.toTime + 'm'),
                             "select": "eps.server.remote_app_id, eps.server.remote_tier_id, eps.server.remote_site_id,"+
                                  "eps.server.remote_deployment_id, eps.server.remote_prefix, eps.server.remote_vn, eps.__key,"+
                                  " eps.server.app, eps.server.tier, eps.server.site, eps.server.deployment, eps.server.local_vn, name, SUM(eps.server.in_bytes),"+
@@ -1235,7 +1265,6 @@ define(
                         }
                     };
                     configTagDefObj.done(function () {
-                        //var self = this;
                         self.viewInst = new ContrailChartsView({
                             el: self.$el.find('#traffic-groups-radial-chart'),
                             model: new ContrailListModel(listModelConfig)
@@ -1244,9 +1273,6 @@ define(
                     });
                 },
                 render: function() {
-                    /*if(!($('#breadcrumb li:last a').text() == ctwc.TRAFFIC_GROUPS_ALL_APPS)){
-                        pushBreadcrumb([ctwc.TRAFFIC_GROUPS_ALL_APPS]);
-                    }*/
                     var trafficGroupsTmpl = contrail.getTemplate4Id('traffic-groups-template');
                     this.$el.html(trafficGroupsTmpl({widgetTitle:'Traffic Groups'}));
                     this.$el.addClass('traffic-groups-view');
