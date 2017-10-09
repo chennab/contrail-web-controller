@@ -39,12 +39,12 @@ define([
                         },
                         {
                             field: 'isClient',
-                            name: 'Client Session',
+                            name: 'Session Type',
                             formatter: function(r,c,v,cd,dc) {
                                if (dc['isClient']) {
-                                    return 'True';
+                                    return 'Client';
                                } else {
-                                    return 'False';
+                                    return 'Server';
                                }
                             }
                         },
