@@ -28,6 +28,10 @@ define([
                     endpoint : endpoint
                 }));
             });
+            if(modelConfig['time_range'] == -1) {
+                modelConfig['time_range'] = modelConfig['from_time'] + ' - ' +
+                                            modelConfig['to_time'];
+            }
             modelConfig["endpoints"] = new Backbone.Collection(endpointsModelCol);
             return modelConfig;
         },
@@ -46,6 +50,13 @@ define([
             });
             if(this.isDeepValid(validations)) {
                 if (contrail.checkIfFunction(callbackObj.success)) {
+                    var timeRange = this.model().get('time_range');
+                    if(typeof timeRange == 'string' && timeRange.indexOf('-') > -1) {
+                        timeRange = timeRange.split('-');
+                        this.model().set('from_time', timeRange[0]);
+                        this.model().set('to_time', timeRange[1]);
+                        this.model().set('time_range', -1);
+                    }
                     callbackObj.success(this.model());
                 }
             } else {

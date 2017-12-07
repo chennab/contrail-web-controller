@@ -995,6 +995,26 @@ define([
             };
             return timeRangeConfig;
         };
+        self.getMultiDateRangeConfig = function (format, addSinceOption) {
+            var dropdownOptions = ctwc.TIMERANGE_DROPDOWN_VALUES;
+            if(addSinceOption) {
+                dropdownOptions = dropdownOptions
+                            .concat(ctwc.TIMERANGE_DROPDOWN_ADDITIONAL_VALUES);
+            }
+            var timeRangeConfig = {
+                columns: [{
+                        elementId: 'time_range',
+                        view: "FormDateRangePickerView",
+                        viewConfig: {
+                            path: 'time_range',
+                            dataBindValue: 'time_range',
+                            class: "col-xs-6"
+                        }
+                    }
+                ]
+            };
+            return timeRangeConfig;
+        };
     };
 
     function getInstanceCPUMemModelConfig(networkFQN, instanceUUID) {

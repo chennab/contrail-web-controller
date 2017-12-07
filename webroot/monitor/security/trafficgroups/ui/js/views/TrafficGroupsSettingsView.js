@@ -222,6 +222,26 @@ define([
                         {
                             columns: [
                                 {
+                                    elementId: 'stats_date',
+                                    view: "AccordianView",
+                                    viewConfig: [
+                                        {
+                                            elementId: 'Traffic_Groups_Time_Range',
+                                            title: 'Time Range',
+                                            view: "SectionView",
+                                            viewConfig: {
+                                                rows: [
+                                                    ctwvc.getMultiDateRangeConfig("hh:mm A", true)
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }/*,
+                        {
+                            columns: [
+                                {
                                     elementId: 'stats_time',
                                     view: "AccordianView",
                                     viewConfig: [
@@ -239,7 +259,7 @@ define([
                                     ]
                                 }
                             ]
-                        }   
+                        }  */ 
                     ]
                 }
             }
